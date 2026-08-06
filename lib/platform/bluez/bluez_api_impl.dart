@@ -5,7 +5,7 @@ import 'bluez_api.dart';
 
 /// Real BlueZ D-Bus calls via package:bluez. Verify API names against
 /// current package docs (pub.dev) at implementation time. Symbol names
-/// checked against bluez 0.7.1 from pub.dev.
+/// checked against bluez 0.8.3 from pub.dev.
 class BlueZApiImpl implements BlueZApi {
   BlueZApiImpl(this._client);
 

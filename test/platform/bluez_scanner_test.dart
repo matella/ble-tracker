@@ -70,6 +70,7 @@ void main() {
     await scanner.start(ScanProfile.balanced);
     await pumpEventQueue();
     // Still unavailable (no state change), so start() doesn't execute
+    expect(api.discovering, isFalse);
 
     // Adapter back on → auto-resume
     api.adapter.add(true);
@@ -98,6 +99,8 @@ void main() {
       () async {
     final api = FakeBlueZApi();
     final scanner = BlueZScanner(api);
+    final statuses = <ScannerStatus>[];
+    scanner.status().listen(statuses.add);
 
     await scanner.start(ScanProfile.balanced);
     await pumpEventQueue();
@@ -111,6 +114,7 @@ void main() {
 
     // Should settle to unavailable with discovery stopped
     expect(api.discovering, isFalse);
+    expect(statuses.last, ScannerStatus.unavailable);
   });
 
   test('overlapping start calls invoke startDiscovery exactly once',
@@ -134,24 +138,13 @@ void main() {
 
   test('dispose-during-in-flight-op no-throw (blocking fake)', () async {
     final api = _BlockingFakeBlueZApi();
-    api.block();
     final scanner = BlueZScanner(api);
-
-    // Start discovery (will block)
-    final startFuture = scanner.start(ScanProfile.balanced);
-
-    // Dispose while start is in flight
-    final disposeFuture = Future<void>(() async {
-      await Future<void>.delayed(Duration(milliseconds: 10));
-      await scanner.dispose();
-    });
-
-    // Release the block
-    await Future<void>.delayed(Duration(milliseconds: 50));
-    api.unblock();
-
-    // Wait for both to complete — neither should throw
-    await Future.wait([startFuture, disposeFuture]);
+    await scanner.start(ScanProfile.balanced);
+    final stopping = scanner.stop(); // parked inside stopDiscovery
+    final disposing = scanner.dispose();
+    api.stopCompleter.complete();
+    await stopping;
+    await disposing;
   });
 }
 
@@ -159,7 +152,7 @@ class _BlockingFakeBlueZApi implements BlueZApi {
   final adapter = StreamController<bool>.broadcast();
   final results = StreamController<ScanObservation>.broadcast();
   bool discovering = false;
-  Completer<void>? _block;
+  final stopCompleter = Completer<void>();
 
   @override
   Stream<bool> adapterOn() => adapter.stream;
@@ -168,21 +161,12 @@ class _BlockingFakeBlueZApi implements BlueZApi {
 
   @override
   Future<void> startDiscovery() async {
-    if (_block != null) {
-      await _block!.future;
-    }
     discovering = true;
   }
 
   @override
-  Future<void> stopDiscovery() async => discovering = false;
-
-  void block() {
-    _block = Completer<void>();
-  }
-
-  void unblock() {
-    _block?.complete();
-    _block = null;
+  Future<void> stopDiscovery() async {
+    await stopCompleter.future;
+    discovering = false;
   }
 }
