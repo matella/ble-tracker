@@ -27,7 +27,7 @@ lib/platform/  BLE adapters (flutter_blue_plus, BlueZ, Web Bluetooth,
                Wear wrapper), persistence
 ```
 
-All four scanner adapters pass a shared contract test suite ([test/contract/](test/contract/)). Time is injected everywhere — no real timers in domain or state logic.
+All four scanner adapters pass a shared contract test suite (harness in [test/contract/](test/contract/), invoked per-adapter from [test/platform/](test/platform/)). Time is injected everywhere — no real timers in domain or state logic.
 
 ## Development
 
