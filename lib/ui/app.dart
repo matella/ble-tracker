@@ -36,8 +36,19 @@ class _BleTrackerAppState extends ConsumerState<BleTrackerApp> {
 
   void _selectTab(int i) {
     setState(() => _tab = i);
-    final scanner = ref.read(bleScannerProvider);
-    scanner.stop().then((_) => scanner.start(_profiles[i]));
+    // Only cycle the scanner when it's in a state where stop()+start()
+    // means something (scanning with the old profile, or idle before the
+    // first scan starts). Doing this unconditionally while unavailable or
+    // unauthorized would fight the recoverable-state banner: stop() is a
+    // no-op there and start() can throw/queue a transition that has
+    // nothing to do with the tab switch. The tab UI still switches either
+    // way — only the scan lifecycle is guarded.
+    final status = ref.read(scannerStatusProvider).value;
+    if (status == ScannerStatus.scanning || status == ScannerStatus.idle) {
+      final scanner = ref.read(bleScannerProvider);
+      scanner.stop().then((_) => scanner.start(_profiles[i])).catchError(
+          (Object e) => debugPrint('scan restart failed: $e'));
+    }
   }
 
   @override
