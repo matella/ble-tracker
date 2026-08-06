@@ -155,6 +155,22 @@ void main() {
     await pump();
     expect(emitted.last.keys, ['b']);
   });
+
+  test('stale device is not resurrected by an unrelated registry emission',
+      () async {
+    registry.add([dev('a'), dev('b')]);
+    await pump();
+    observations.add(obs('a', t0));
+    await pump();
+    ticks.add(t0.add(const Duration(seconds: 10)));
+    await pump();
+    expect(emitted.last['a']!.visibility, DeviceVisibility.notVisible);
+
+    registry.add([dev('a'), dev('b'), dev('c')]); // unrelated change
+    await pump();
+    expect(emitted.last['a']!.visibility, DeviceVisibility.notVisible);
+    expect(emitted.last['a']!.estimate, isNull);
+  });
 }
 
 class _SpySmoother implements RssiSmoother {

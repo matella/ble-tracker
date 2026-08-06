@@ -59,12 +59,16 @@ class DeviceStateComposer {
       }
     }
     for (final d in list) {
+      final previous = _devices[d.id];
       _devices[d.id] = d;
-      _visibility[d.id] = !d.trackingEnabled
-          ? DeviceVisibility.trackingOff
-          : (_lastSeen.containsKey(d.id)
-              ? DeviceVisibility.visible
-              : DeviceVisibility.notVisible);
+      if (!d.trackingEnabled) {
+        _visibility[d.id] = DeviceVisibility.trackingOff;
+      } else if (previous == null || !previous.trackingEnabled) {
+        // New or re-enabled device: notVisible until an observation arrives.
+        _visibility[d.id] = DeviceVisibility.notVisible;
+      }
+      // Otherwise keep current visibility — staleness must not be undone by
+      // unrelated registry emissions (FR-12).
     }
     _emit();
   }
