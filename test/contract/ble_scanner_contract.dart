@@ -98,5 +98,38 @@ void runBleScannerContract(
       expect(statuses.last, ScannerStatus.unauthorized);
       // The observation stream must not have errored (listener above would throw).
     });
+
+    test('start from unavailable/unauthorized is a no-op, not an error',
+        () async {
+      await h.scanner.start(ScanProfile.balanced);
+      await pumpEventQueue();
+      h.adapterOff();
+      await pumpEventQueue();
+      expect(statuses.last, ScannerStatus.unavailable);
+
+      await h.scanner.start(ScanProfile.balanced);
+      await pumpEventQueue();
+      expect(statuses.last, ScannerStatus.unavailable);
+
+      h.revokePermission();
+      await pumpEventQueue();
+      expect(statuses.last, ScannerStatus.unauthorized);
+
+      await h.scanner.start(ScanProfile.balanced);
+      await pumpEventQueue();
+      expect(statuses.last, ScannerStatus.unauthorized);
+    });
+
+    test('stop from unauthorized is a no-op', () async {
+      await h.scanner.start(ScanProfile.balanced);
+      await pumpEventQueue();
+      h.revokePermission();
+      await pumpEventQueue();
+      expect(statuses.last, ScannerStatus.unauthorized);
+
+      await h.scanner.stop();
+      await pumpEventQueue();
+      expect(statuses.last, ScannerStatus.unauthorized);
+    });
   });
 }

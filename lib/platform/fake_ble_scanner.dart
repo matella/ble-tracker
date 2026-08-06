@@ -44,16 +44,23 @@ class FakeBleScanner implements BleScanner {
 
   @override
   Future<void> start(ScanProfile profile) async {
-    if (_machine.status != ScannerStatus.scanning) {
-      startedProfiles.add(profile);
-      _apply(ScannerEvent.start);
-    }
+    // Matches the real adapters: start() only does anything from idle — a
+    // no-op elsewhere (including unavailable/unauthorized), not an
+    // IllegalTransitionError.
+    if (_machine.status != ScannerStatus.idle) return;
+    startedProfiles.add(profile);
+    _apply(ScannerEvent.start);
   }
 
   @override
   Future<void> stop() async {
-    if (_machine.status != ScannerStatus.idle) {
-      _apply(ScannerEvent.stop);
+    switch (_machine.status) {
+      case ScannerStatus.scanning:
+      case ScannerStatus.unavailable:
+        _apply(ScannerEvent.stop);
+      case ScannerStatus.idle:
+      case ScannerStatus.unauthorized:
+        return; // no-op — no legal stop transition from these states
     }
   }
 }
