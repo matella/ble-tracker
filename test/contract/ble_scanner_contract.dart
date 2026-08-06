@@ -19,10 +19,17 @@ class ScannerHarness {
 }
 
 /// §7.3: every adapter runs this identical suite with its own fake backend.
+///
+/// [supportsTxPower] and [supportsAdvertisedName] let Tier C adapters (Web:
+/// no advertisement access) opt out of asserting those fields round-trip —
+/// default true preserves the original strict assertions for every other
+/// adapter.
 void runBleScannerContract(
   String name,
-  Future<ScannerHarness> Function() createHarness,
-) {
+  Future<ScannerHarness> Function() createHarness, {
+  bool supportsTxPower = true,
+  bool supportsAdvertisedName = true,
+}) {
   group('BleScanner contract: $name', () {
     late ScannerHarness h;
     late List<ScannerStatus> statuses;
@@ -57,9 +64,9 @@ void runBleScannerContract(
       final o = observations.single;
       expect(o.deviceId, 'id-1');
       expect(o.rssi, -61);
-      expect(o.txPower, -59);
+      expect(o.txPower, supportsTxPower ? -59 : isNull);
       expect(o.timestamp, t);
-      expect(o.advertisedName, 'Buds');
+      if (supportsAdvertisedName) expect(o.advertisedName, 'Buds');
     });
 
     test('adapter off mid-scan → unavailable; on → auto-resume scanning',
