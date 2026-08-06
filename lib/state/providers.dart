@@ -50,6 +50,10 @@ RadarLayout radarLayout(Ref ref) =>
     HashRadarLayout(ref.watch(proximityConfigProvider));
 
 @Riverpod(keepAlive: true)
+Stream<ScannerStatus> scannerStatus(Ref ref) =>
+    ref.watch(bleScannerProvider).status();
+
+@Riverpod(keepAlive: true)
 Stream<Map<String, TrackedDeviceState>> deviceStates(Ref ref) {
   final composer = DeviceStateComposer(
     registry: ref.watch(deviceRegistryProvider).watchAll(),

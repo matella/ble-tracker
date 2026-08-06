@@ -357,6 +357,45 @@ final class RadarLayoutProvider
 
 String _$radarLayoutHash() => r'ad7e37ebdd1c0ed5cd2176e8b4dd25e63ef89f80';
 
+@ProviderFor(scannerStatus)
+final scannerStatusProvider = ScannerStatusProvider._();
+
+final class ScannerStatusProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<ScannerStatus>,
+          ScannerStatus,
+          Stream<ScannerStatus>
+        >
+    with $FutureModifier<ScannerStatus>, $StreamProvider<ScannerStatus> {
+  ScannerStatusProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'scannerStatusProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$scannerStatusHash();
+
+  @$internal
+  @override
+  $StreamProviderElement<ScannerStatus> $createElement(
+    $ProviderPointer pointer,
+  ) => $StreamProviderElement(pointer);
+
+  @override
+  Stream<ScannerStatus> create(Ref ref) {
+    return scannerStatus(ref);
+  }
+}
+
+String _$scannerStatusHash() => r'85673d1cddfcae0ade3f51f86f87722f7295bb96';
+
 @ProviderFor(deviceStates)
 final deviceStatesProvider = DeviceStatesProvider._();
 
