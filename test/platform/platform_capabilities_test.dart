@@ -38,4 +38,11 @@ void main() {
     expect(c.supportsAutoDiscovery, isFalse);
     expect(c.supportsBackgroundScan, isFalse);
   });
+
+  test('unclassified platform falls back to Tier B, not Tier A', () {
+    final c = caps(TargetPlatform.fuchsia);
+    expect(c.tier, CapabilityTier.tierB);
+    expect(c.supportsAutoDiscovery, isTrue);
+    expect(c.supportsBackgroundScan, isFalse);
+  });
 }
