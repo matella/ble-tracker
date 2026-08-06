@@ -33,6 +33,15 @@ class FakeFbpApi implements FbpApi {
   Future<void> stopScan() async => scanning = false;
 }
 
+class _BlockingFbpApi extends FakeFbpApi {
+  final stopCompleter = Completer<void>();
+  @override
+  Future<void> stopScan() async {
+    await stopCompleter.future;
+    scanning = false;
+  }
+}
+
 void main() {
   runBleScannerContract('FlutterBluePlusScanner', () async {
     final api = FakeFbpApi();
@@ -122,5 +131,16 @@ void main() {
       scanner.start(ScanProfile.balanced),
     ]);
     expect(api.startCalls, 1);
+  });
+
+  test('dispose during in-flight operation does not throw', () async {
+    final api = _BlockingFbpApi();
+    final scanner = FlutterBluePlusScanner(api);
+    await scanner.start(ScanProfile.balanced);
+    final stopping = scanner.stop(); // parked inside stopScan
+    final disposing = scanner.dispose();
+    api.stopCompleter.complete();
+    await stopping;
+    await disposing;
   });
 }

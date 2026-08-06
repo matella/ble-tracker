@@ -18,6 +18,7 @@ class FlutterBluePlusScanner implements BleScanner {
   late final StreamSubscription<bool> _adapterSub;
   late final StreamSubscription<ScanObservation> _resultsSub;
   ScanProfile _lastProfile = ScanProfile.balanced;
+  bool _disposed = false;
 
   // Serializes every state-mutating operation (start/stop/adapter
   // changes/permission revocation) so exactly one runs at a time and each
@@ -26,13 +27,21 @@ class FlutterBluePlusScanner implements BleScanner {
   // gone stale by the time their await resolves.
   Future<void> _serial = Future<void>.value();
 
+  /// Serializes state-mutating operations. INVARIANT: a queued op must never
+  /// call (and await) another _enqueue-wrapped method — that deadlocks the
+  /// queue. Apply events inline instead (see start()'s permission handling).
   Future<void> _enqueue(Future<void> Function() op) {
     final next = _serial.then((_) => op());
     _serial = next.then((_) {}, onError: (Object _) {});
     return next;
   }
 
-  void _apply(ScannerEvent event) => _statuses.add(_machine.apply(event));
+  void _apply(ScannerEvent event) {
+    final status = _machine.apply(event);
+    if (!_disposed) {
+      _statuses.add(status);
+    }
+  }
 
   Future<void> _onAdapterChanged(bool on) => _enqueue(() async {
     if (!on && _machine.status == ScannerStatus.scanning) {
@@ -96,8 +105,10 @@ class FlutterBluePlusScanner implements BleScanner {
   /// [BleScanner] — call when this scanner instance is being torn down
   /// for good (e.g. app shutdown), not between scans.
   Future<void> dispose() async {
+    _disposed = true;
     await _adapterSub.cancel();
     await _resultsSub.cancel();
+    await _serial; // let any in-flight queued op finish first
     await _observations.close();
     await _statuses.close();
   }
