@@ -38,6 +38,19 @@ void main() {
     await pumpEventQueue();
     expect(inner.profiles.last, ScanProfile.lowLatency); // restore requested
   });
+
+  test('start while already ambient delegates balanced profile', () async {
+    final inner = _ProfileRecordingScanner();
+    final ambient = StreamController<bool>.broadcast();
+    final scanner = WearScanner(inner: inner, isAmbient: ambient.stream);
+    ambient.add(true); // ambient before start — _started guard skips inner call
+    await pumpEventQueue();
+    await scanner.start(ScanProfile.lowLatency);
+    expect(inner.profiles, [ScanProfile.balanced]);
+    ambient.add(false);
+    await pumpEventQueue();
+    expect(inner.profiles.last, ScanProfile.lowLatency); // restore on exit
+  });
 }
 
 class _ProfileRecordingScanner implements BleScanner {

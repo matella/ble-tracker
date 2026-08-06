@@ -16,8 +16,10 @@ class WearScanner implements BleScanner {
   late final StreamSubscription<bool> _ambientSub;
   ScanProfile _requestedProfile = ScanProfile.balanced;
   bool _started = false;
+  bool _ambient = false;
 
   Future<void> _onAmbient(bool ambient) async {
+    _ambient = ambient;
     if (!_started) return;
     await _inner.start(
         ambient ? ScanProfile.balanced : _requestedProfile);
@@ -33,7 +35,7 @@ class WearScanner implements BleScanner {
   Future<void> start(ScanProfile profile) async {
     _requestedProfile = profile;
     _started = true;
-    await _inner.start(profile);
+    await _inner.start(_ambient ? ScanProfile.balanced : profile);
   }
 
   @override
