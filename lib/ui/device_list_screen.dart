@@ -30,9 +30,7 @@ class DeviceListScreen extends ConsumerWidget {
               title: const Text('Pair a device'),
               subtitle: const Text(
                   'This browser only supports manually paired devices.'),
-              onTap: () {
-                // Wired to WebBluetoothScanner.pairNewDevice in Task 19.
-              },
+              onTap: () => ref.read(manualPairingProvider)?.pairNewDevice(),
             ),
           Expanded(
             child: ListView(

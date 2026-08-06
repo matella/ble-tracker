@@ -1,13 +1,14 @@
 import 'dart:async';
 
 import '../../domain/interfaces.dart';
+import '../../domain/manual_pairing.dart';
 import '../../domain/scanner_state_machine.dart';
 import '../../domain/types.dart';
 import 'web_bluetooth_api.dart';
 
 /// Tier C: no advertisement scanning. Polls RSSI of manually-paired devices
 /// on each injected tick (>= 1 Hz in production wiring, FR-18).
-class WebBluetoothScanner implements BleScanner {
+class WebBluetoothScanner implements BleScanner, ManualPairing {
   WebBluetoothScanner({
     required WebBluetoothApi api,
     required Stream<DateTime> pollTicks,
@@ -53,6 +54,7 @@ class WebBluetoothScanner implements BleScanner {
 
   /// Tier C manual-discovery entry point (FR-3): invokes the browser's
   /// device chooser. Must be called from a user gesture.
+  @override
   Future<void> pairNewDevice() async {
     if (!_api.isSupported) return;
     await _api.requestDevice();

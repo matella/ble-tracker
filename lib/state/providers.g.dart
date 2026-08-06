@@ -92,6 +92,58 @@ final class BleScannerProvider
 
 String _$bleScannerHash() => r'559d2d8b0b8fd7d81d116737bd885a973cb3df59';
 
+/// Tier C manual-pairing entry point (FR-3), when the active scanner exposes
+/// one. Null for every other tier — the UI only wires the pair button when
+/// this is non-null.
+
+@ProviderFor(manualPairing)
+final manualPairingProvider = ManualPairingProvider._();
+
+/// Tier C manual-pairing entry point (FR-3), when the active scanner exposes
+/// one. Null for every other tier — the UI only wires the pair button when
+/// this is non-null.
+
+final class ManualPairingProvider
+    extends $FunctionalProvider<ManualPairing?, ManualPairing?, ManualPairing?>
+    with $Provider<ManualPairing?> {
+  /// Tier C manual-pairing entry point (FR-3), when the active scanner exposes
+  /// one. Null for every other tier — the UI only wires the pair button when
+  /// this is non-null.
+  ManualPairingProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'manualPairingProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$manualPairingHash();
+
+  @$internal
+  @override
+  $ProviderElement<ManualPairing?> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  ManualPairing? create(Ref ref) {
+    return manualPairing(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(ManualPairing? value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<ManualPairing?>(value),
+    );
+  }
+}
+
+String _$manualPairingHash() => r'e4c933489c1693f2f7d33b029545560d4e51504a';
+
 @ProviderFor(deviceRegistry)
 final deviceRegistryProvider = DeviceRegistryProvider._();
 

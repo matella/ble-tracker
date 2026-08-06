@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:ble_tracker/domain/interfaces.dart';
+import 'package:ble_tracker/domain/manual_pairing.dart';
 import 'package:ble_tracker/domain/types.dart';
 import 'package:ble_tracker/platform/default_platform_capabilities.dart';
 import 'package:ble_tracker/platform/fake_ble_scanner.dart';
@@ -62,6 +63,17 @@ RegisteredDevice dev(String id, {bool tracking = true}) => RegisteredDevice(
     id: id, name: 'Device $id', type: DeviceType.tag,
     trackingEnabled: tracking);
 
+/// Tier C fake that also exposes [ManualPairing], mirroring how
+/// WebBluetoothScanner implements both interfaces in production.
+class _PairableFakeScanner extends FakeBleScanner implements ManualPairing {
+  int pairCalls = 0;
+
+  @override
+  Future<void> pairNewDevice() async {
+    pairCalls++;
+  }
+}
+
 void main() {
   testWidgets('renders all three visibility states', (tester) async {
     final registry = RecordingRegistry([dev('a'), dev('b'), dev('c', tracking: false)]);
@@ -106,6 +118,19 @@ void main() {
     await tester.pump();
     expect(find.byKey(const Key('auto-discover-note')), findsNothing);
     expect(find.byKey(const Key('manual-pair-button')), findsOneWidget);
+  });
+
+  testWidgets('Tier C manual pair button invokes ManualPairing.pairNewDevice',
+      (tester) async {
+    final scanner = _PairableFakeScanner();
+    await tester.pumpWidget(app(overridesWith(
+        registry: RecordingRegistry([]),
+        scanner: scanner,
+        tier: CapabilityTier.tierC)));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('manual-pair-button')));
+    await tester.pump();
+    expect(scanner.pairCalls, 1);
   });
 
   testWidgets('status banner surfaces unavailable and unauthorized states',

@@ -5,6 +5,7 @@ import '../domain/hash_radar_layout.dart';
 import '../domain/interfaces.dart';
 import '../domain/kalman_rssi_smoother.dart';
 import '../domain/log_distance_estimator.dart';
+import '../domain/manual_pairing.dart';
 import '../domain/types.dart';
 import 'device_state_composer.dart';
 
@@ -16,6 +17,15 @@ ProximityConfig proximityConfig(Ref ref) => ProximityConfig();
 @Riverpod(keepAlive: true)
 BleScanner bleScanner(Ref ref) =>
     throw UnimplementedError('override with a platform scanner in main()');
+
+/// Tier C manual-pairing entry point (FR-3), when the active scanner exposes
+/// one. Null for every other tier — the UI only wires the pair button when
+/// this is non-null.
+@Riverpod(keepAlive: true)
+ManualPairing? manualPairing(Ref ref) {
+  final scanner = ref.watch(bleScannerProvider);
+  return scanner is ManualPairing ? scanner as ManualPairing : null;
+}
 
 @Riverpod(keepAlive: true)
 DeviceRegistry deviceRegistry(Ref ref) =>
