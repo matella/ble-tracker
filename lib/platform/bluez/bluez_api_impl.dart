@@ -1,3 +1,4 @@
+import 'package:async/async.dart';
 import 'package:bluez/bluez.dart';
 
 import '../../domain/types.dart';
@@ -19,13 +20,28 @@ class BlueZApiImpl implements BlueZApi {
       .map((_) => _adapter.powered);
 
   @override
-  Stream<ScanObservation> scanResults() async* {
-    await for (final device in _client.deviceAdded) {
+  Stream<ScanObservation> scanResults() {
+    // Merges (a) an observation for every newly-added device plus its
+    // subsequent RSSI-bearing property changes, with (b) RSSI property
+    // changes for devices already known when this is called — otherwise
+    // devices seen before scanResults() was subscribed would only ever
+    // yield their first observation.
+    final group = StreamGroup<ScanObservation>();
+    group.add(_client.deviceAdded.asyncExpand((device) async* {
       yield _toObservation(device);
+      yield* device.propertiesChanged
+          .where((props) => props.contains('RSSI'))
+          .map((_) => _toObservation(device));
+    }));
+    for (final device in _client.devices) {
+      group.add(device.propertiesChanged
+          .where((props) => props.contains('RSSI'))
+          .map((_) => _toObservation(device)));
     }
-    // Note: also merge per-device RSSI propertiesChanged for already-known
-    // devices — StreamGroup.merge from package:async:
-    //   StreamGroup.merge([_client.deviceAdded.map(...), ...rssiStreams])
+    // No close(): deviceAdded never completes on its own, so the merged
+    // stream would never finish regardless — nothing is gained by closing
+    // the group to further additions.
+    return group.stream;
   }
 
   ScanObservation _toObservation(BlueZDevice d) => ScanObservation(
