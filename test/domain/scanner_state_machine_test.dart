@@ -62,6 +62,18 @@ void main() {
     expect(m.apply(ScannerEvent.start), ScannerStatus.scanning);
   });
 
+  test('unavailable --stop--> idle', () {
+    expect(machineAt(ScannerStatus.unavailable).apply(ScannerEvent.stop),
+        ScannerStatus.idle);
+  });
+
+  test('permissionRevoked from unauthorized stays unauthorized', () {
+    expect(
+        machineAt(ScannerStatus.unauthorized)
+            .apply(ScannerEvent.permissionRevoked),
+        ScannerStatus.unauthorized);
+  });
+
   test('illegal transitions are rejected', () {
     expect(() => machineAt(ScannerStatus.idle).apply(ScannerEvent.adapterOn),
         throwsA(isA<IllegalTransitionError>()));
