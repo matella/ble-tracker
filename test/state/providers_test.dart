@@ -67,5 +67,8 @@ void main() {
     addTearDown(container.dispose);
     expect(() => container.read(bleScannerProvider), throwsA(anything));
     expect(() => container.read(deviceRegistryProvider), throwsA(anything));
+    expect(
+        () => container.read(platformCapabilitiesProvider), throwsA(anything));
+    expect(() => container.read(tickerProvider), throwsA(anything));
   });
 }

@@ -34,14 +34,39 @@ void main() {
   });
 
   test('value equality on core types', () {
-    expect(
-      const DistanceEstimate(meters: 1.5, band: ProximityBand.near),
-      const DistanceEstimate(meters: 1.5, band: ProximityBand.near),
-    );
+    const est = DistanceEstimate(meters: 1.5, band: ProximityBand.near);
+    const est2 = DistanceEstimate(meters: 1.5, band: ProximityBand.near);
+    expect(est, est2);
+    expect(est.hashCode, est2.hashCode);
+
     final t = DateTime.utc(2026);
+    final obs = ScanObservation(
+        deviceId: 'x', rssi: -60, txPower: -59, timestamp: t, advertisedName: 'n');
+    final obs2 = ScanObservation(
+        deviceId: 'x', rssi: -60, txPower: -59, timestamp: t, advertisedName: 'n');
+    expect(obs, obs2);
+    expect(obs.hashCode, obs2.hashCode);
+
+    const device = RegisteredDevice(id: 'a', name: 'A', type: DeviceType.tag);
+    const device2 = RegisteredDevice(id: 'a', name: 'A', type: DeviceType.tag);
+    expect(device, device2);
+    expect(device.hashCode, device2.hashCode);
+
+    final state = TrackedDeviceState(
+        device: device,
+        visibility: DeviceVisibility.visible,
+        estimate: est,
+        lastSeen: t);
+    final state2 = TrackedDeviceState(
+        device: device2,
+        visibility: DeviceVisibility.visible,
+        estimate: est2,
+        lastSeen: t);
+    expect(state, state2);
+    expect(state.hashCode, state2.hashCode);
     expect(
-      ScanObservation(deviceId: 'x', rssi: -60, txPower: -59, timestamp: t, advertisedName: 'n'),
-      ScanObservation(deviceId: 'x', rssi: -60, txPower: -59, timestamp: t, advertisedName: 'n'),
-    );
+        state,
+        isNot(TrackedDeviceState(
+            device: device, visibility: DeviceVisibility.notVisible)));
   });
 }

@@ -76,3 +76,9 @@ Stream<Map<String, double>> latestRssi(Ref ref) async* {
     yield Map.of(latest);
   }
 }
+
+/// FR-1: raw scan observations for the discovery screen (manual "track this
+/// device" flow), independent of registration status.
+@Riverpod(keepAlive: true)
+Stream<ScanObservation> discoveryObservations(Ref ref) =>
+    ref.watch(bleScannerProvider).observe();

@@ -482,3 +482,51 @@ final class LatestRssiProvider
 }
 
 String _$latestRssiHash() => r'811ce3f46abe8ec9d511d3694d7fe12206311029';
+
+/// FR-1: raw scan observations for the discovery screen (manual "track this
+/// device" flow), independent of registration status.
+
+@ProviderFor(discoveryObservations)
+final discoveryObservationsProvider = DiscoveryObservationsProvider._();
+
+/// FR-1: raw scan observations for the discovery screen (manual "track this
+/// device" flow), independent of registration status.
+
+final class DiscoveryObservationsProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<ScanObservation>,
+          ScanObservation,
+          Stream<ScanObservation>
+        >
+    with $FutureModifier<ScanObservation>, $StreamProvider<ScanObservation> {
+  /// FR-1: raw scan observations for the discovery screen (manual "track this
+  /// device" flow), independent of registration status.
+  DiscoveryObservationsProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'discoveryObservationsProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$discoveryObservationsHash();
+
+  @$internal
+  @override
+  $StreamProviderElement<ScanObservation> $createElement(
+    $ProviderPointer pointer,
+  ) => $StreamProviderElement(pointer);
+
+  @override
+  Stream<ScanObservation> create(Ref ref) {
+    return discoveryObservations(ref);
+  }
+}
+
+String _$discoveryObservationsHash() =>
+    r'2985055ed5e7fda093d7b5a3b6de12c0efd94af9';

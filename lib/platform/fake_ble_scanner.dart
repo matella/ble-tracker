@@ -11,6 +11,11 @@ class FakeBleScanner implements BleScanner {
   final _observations = StreamController<ScanObservation>.broadcast();
   final _statuses = StreamController<ScannerStatus>.broadcast();
 
+  /// Profiles from accepted `start()` calls (i.e. not idempotent no-ops),
+  /// in order. Lets widget tests assert NFR-4 scan-profile-per-screen
+  /// switching without needing a real platform scanner.
+  final startedProfiles = <ScanProfile>[];
+
   ScannerStatus get currentStatus => _machine.status;
 
   void _apply(ScannerEvent event) {
@@ -40,6 +45,7 @@ class FakeBleScanner implements BleScanner {
   @override
   Future<void> start(ScanProfile profile) async {
     if (_machine.status != ScannerStatus.scanning) {
+      startedProfiles.add(profile);
       _apply(ScannerEvent.start);
     }
   }

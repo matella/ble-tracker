@@ -25,6 +25,31 @@ class _FailingStore implements KeyValueStore {
   }
 }
 
+/// Every `read()` call gets its own [Completer], resolved manually by the
+/// test — lets a test control exactly when a pending initial `_load()`
+/// resolves relative to other concurrent operations.
+class _SequencedReadStore implements KeyValueStore {
+  final Map<String, String> data = {};
+  final pending = <Completer<String?>>[];
+
+  @override
+  Future<String?> read(String key) {
+    final completer = Completer<String?>();
+    pending.add(completer);
+    return completer.future;
+  }
+
+  @override
+  Future<void> write(String key, String value) async => data[key] = value;
+}
+
+class _ThrowingReadStore implements KeyValueStore {
+  @override
+  Future<String?> read(String key) async => throw StateError('disk error');
+  @override
+  Future<void> write(String key, String value) async {}
+}
+
 RegisteredDevice dev(String id, {bool tracking = true}) => RegisteredDevice(
     id: id, name: 'name-$id', type: DeviceType.tag, trackingEnabled: tracking);
 
@@ -104,5 +129,50 @@ void main() {
     await expectLater(r.register(dev('a')), throwsA(isA<StateError>()));
     failing.failWrites = false;
     expect(await r.watchAll().first, isEmpty);
+  });
+
+  test('an update that lands while the initial load is still pending is not '
+      'dropped (delivered instead of a stale snapshot)', () async {
+    final store = _SequencedReadStore();
+    final r = PersistentDeviceRegistry(store);
+
+    final events = <List<RegisteredDevice>>[];
+    final sub = r.watchAll().listen(events.add);
+    await pumpEventQueue();
+    // onListen has subscribed to the internal broadcast controller and is
+    // now awaiting the initial _load()'s read() — nothing delivered yet.
+    expect(store.pending, hasLength(1));
+    expect(events, isEmpty);
+
+    // A concurrent register() races the same _load() gate (cache is still
+    // unset) and gets its own read().
+    final registerDone = r.register(dev('a'));
+    await pumpEventQueue();
+    expect(store.pending, hasLength(2));
+
+    // Let register()'s load see no prior data, then its save completes —
+    // this reaches _controller.add() while the initial load is still
+    // pending, so it lands in the onListen buffer rather than `output`.
+    store.pending[1].complete(null);
+    await registerDone;
+    expect(events, isEmpty); // still buffered, not yet delivered
+
+    // Now let the original initial-load read resolve (also no prior data).
+    store.pending[0].complete(null);
+    await pumpEventQueue();
+
+    // The buffered update wins over the (now stale) empty snapshot.
+    expect(events.single, [dev('a')]);
+    await sub.cancel();
+  });
+
+  test('watchAll surfaces an error from the initial load to subscribers',
+      () async {
+    final r = PersistentDeviceRegistry(_ThrowingReadStore());
+    final errors = <Object>[];
+    final sub = r.watchAll().listen((_) {}, onError: errors.add);
+    await pumpEventQueue();
+    expect(errors.single, isA<StateError>());
+    await sub.cancel();
   });
 }
