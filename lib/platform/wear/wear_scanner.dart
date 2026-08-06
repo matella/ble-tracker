@@ -21,8 +21,13 @@ class WearScanner implements BleScanner {
   Future<void> _onAmbient(bool ambient) async {
     _ambient = ambient;
     if (!_started) return;
-    await _inner.start(
-        ambient ? ScanProfile.balanced : _requestedProfile);
+    // The real inner scanner (FlutterBluePlusScanner) treats start() while
+    // already scanning as a no-op that just records the requested profile —
+    // it never re-issues the platform scan call. A stop()-then-start() is
+    // required to actually apply the ambient-downgraded (or restored)
+    // profile.
+    await _inner.stop();
+    await _inner.start(ambient ? ScanProfile.balanced : _requestedProfile);
   }
 
   @override

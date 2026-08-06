@@ -29,14 +29,25 @@ void main() {
 
     await scanner.start(ScanProfile.lowLatency);
     expect(inner.profiles, [ScanProfile.lowLatency]);
+    expect(inner.stops, 0);
 
     ambient.add(true);
     await pumpEventQueue();
     expect(inner.profiles.last, ScanProfile.balanced);
+    // The real FlutterBluePlusScanner treats start()-while-scanning as a
+    // no-op, so the ambient downgrade only takes effect if WearScanner
+    // stops the inner scanner before restarting it with the new profile.
+    expect(inner.stops, 1);
 
     ambient.add(false);
     await pumpEventQueue();
     expect(inner.profiles.last, ScanProfile.lowLatency); // restore requested
+    expect(inner.stops, 2);
+    expect(inner.profiles, [
+      ScanProfile.lowLatency,
+      ScanProfile.balanced,
+      ScanProfile.lowLatency,
+    ]);
   });
 
   test('start while already ambient delegates balanced profile', () async {
@@ -55,6 +66,7 @@ void main() {
 
 class _ProfileRecordingScanner implements BleScanner {
   final profiles = <ScanProfile>[];
+  int stops = 0;
   @override
   Stream<ScanObservation> observe() => const Stream.empty();
   @override
@@ -62,5 +74,5 @@ class _ProfileRecordingScanner implements BleScanner {
   @override
   Future<void> start(ScanProfile profile) async => profiles.add(profile);
   @override
-  Future<void> stop() async {}
+  Future<void> stop() async => stops++;
 }
