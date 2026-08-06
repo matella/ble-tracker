@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart' show PlatformException;
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 
 import '../../domain/types.dart';
@@ -25,12 +26,34 @@ class FbpApiImpl implements FbpApi {
             ),
           ));
 
+  /// Maps a missing/revoked BLE permission (NFR-6) to [FbpPermissionDenied].
+  /// flutter_blue_plus 2.3.11 doesn't have a dedicated permission error
+  /// code — it surfaces either a [FlutterBluePlusException] (with a
+  /// platform-specific `description`) or, on some Android paths, a raw
+  /// [PlatformException] straight from the plugin channel. Match
+  /// conservatively on "permission" appearing in whatever text either
+  /// exception carries; anything else is rethrown unchanged.
   @override
-  Future<void> startScan({required bool lowLatency}) => FlutterBluePlus.startScan(
+  Future<void> startScan({required bool lowLatency}) async {
+    try {
+      await FlutterBluePlus.startScan(
         continuousUpdates: true,
         androidScanMode:
             lowLatency ? AndroidScanMode.lowLatency : AndroidScanMode.balanced,
       );
+    } on FlutterBluePlusException catch (e) {
+      if (_mentionsPermission(e.description)) throw FbpPermissionDenied();
+      rethrow;
+    } on PlatformException catch (e) {
+      if (_mentionsPermission(e.code) || _mentionsPermission(e.message)) {
+        throw FbpPermissionDenied();
+      }
+      rethrow;
+    }
+  }
+
+  bool _mentionsPermission(String? text) =>
+      text?.toLowerCase().contains('permission') ?? false;
 
   @override
   Future<void> stopScan() => FlutterBluePlus.stopScan();
