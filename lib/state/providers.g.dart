@@ -436,3 +436,49 @@ final class DeviceStatesProvider
 }
 
 String _$deviceStatesHash() => r'3ca3a09d98e14e5037453aaf5f10a371880dd0ef';
+
+/// FR-17: raw RSSI per device, for the device detail sheet.
+
+@ProviderFor(latestRssi)
+final latestRssiProvider = LatestRssiProvider._();
+
+/// FR-17: raw RSSI per device, for the device detail sheet.
+
+final class LatestRssiProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<Map<String, double>>,
+          Map<String, double>,
+          Stream<Map<String, double>>
+        >
+    with
+        $FutureModifier<Map<String, double>>,
+        $StreamProvider<Map<String, double>> {
+  /// FR-17: raw RSSI per device, for the device detail sheet.
+  LatestRssiProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'latestRssiProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$latestRssiHash();
+
+  @$internal
+  @override
+  $StreamProviderElement<Map<String, double>> $createElement(
+    $ProviderPointer pointer,
+  ) => $StreamProviderElement(pointer);
+
+  @override
+  Stream<Map<String, double>> create(Ref ref) {
+    return latestRssi(ref);
+  }
+}
+
+String _$latestRssiHash() => r'811ce3f46abe8ec9d511d3694d7fe12206311029';

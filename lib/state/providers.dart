@@ -66,3 +66,13 @@ Stream<Map<String, TrackedDeviceState>> deviceStates(Ref ref) {
   ref.onDispose(composer.dispose);
   return composer.states;
 }
+
+/// FR-17: raw RSSI per device, for the device detail sheet.
+@Riverpod(keepAlive: true)
+Stream<Map<String, double>> latestRssi(Ref ref) async* {
+  final latest = <String, double>{};
+  await for (final obs in ref.watch(bleScannerProvider).observe()) {
+    latest[obs.deviceId] = obs.rssi;
+    yield Map.of(latest);
+  }
+}
