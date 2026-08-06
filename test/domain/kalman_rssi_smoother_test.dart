@@ -15,13 +15,14 @@ double variance(List<double> xs) {
 void main() {
   final t0 = DateTime.utc(2026, 1, 1);
 
-  test('converges on a constant signal', () {
+  test('converges on a constant signal from an off-target start', () {
     final s = defaultSmoother();
+    s.next('d', -40, t0); // first sample seeds the estimate off-target
     var out = 0.0;
-    for (var i = 0; i < 50; i++) {
+    for (var i = 1; i <= 50; i++) {
       out = s.next('d', -60, t0.add(Duration(milliseconds: 100 * i)));
     }
-    expect(out, closeTo(-60, 0.01));
+    expect(out, closeTo(-60, 0.1));
   });
 
   test('attenuates jitter (output variance well below input variance)', () {
