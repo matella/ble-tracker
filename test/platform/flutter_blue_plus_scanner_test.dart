@@ -13,6 +13,7 @@ class FakeFbpApi implements FbpApi {
   bool permissionGranted = true;
   bool scanning = false;
   bool? lastLowLatency;
+  int startCalls = 0;
 
   @override
   Stream<bool> adapterOn() => adapter.stream;
@@ -22,6 +23,7 @@ class FakeFbpApi implements FbpApi {
 
   @override
   Future<void> startScan({required bool lowLatency}) async {
+    startCalls++;
     if (!permissionGranted) throw FbpPermissionDenied();
     scanning = true;
     lastLowLatency = lowLatency;
@@ -71,5 +73,54 @@ void main() {
     await pumpEventQueue();
     expect(api.scanning, isTrue);
     expect(api.lastLowLatency, isTrue);
+  });
+
+  test(
+    'start while unavailable is a no-op that still updates resume profile',
+    () async {
+      final api = FakeFbpApi();
+      final scanner = FlutterBluePlusScanner(api);
+      await scanner.start(ScanProfile.balanced);
+      api.adapter.add(false);
+      await pumpEventQueue();
+      await scanner.start(ScanProfile.lowLatency); // must not throw
+      expect(api.scanning, isFalse);
+      api.adapter.add(true);
+      await pumpEventQueue();
+      expect(api.scanning, isTrue);
+      expect(api.lastLowLatency, isTrue); // resumed with the newest profile
+    },
+  );
+
+  test('stop while unauthorized is a no-op', () async {
+    final api = FakeFbpApi();
+    final scanner = FlutterBluePlusScanner(api);
+    scanner.onPermissionRevoked();
+    await pumpEventQueue();
+    await scanner.stop(); // must not throw
+  });
+
+  test('rapid off-on-off settles unavailable with plugin stopped', () async {
+    final api = FakeFbpApi();
+    final scanner = FlutterBluePlusScanner(api);
+    final statuses = <ScannerStatus>[];
+    scanner.status().listen(statuses.add);
+    await scanner.start(ScanProfile.balanced);
+    api.adapter.add(false);
+    api.adapter.add(true);
+    api.adapter.add(false);
+    await pumpEventQueue();
+    expect(statuses.last, ScannerStatus.unavailable);
+    expect(api.scanning, isFalse);
+  });
+
+  test('overlapping start calls invoke the plugin exactly once', () async {
+    final api = FakeFbpApi();
+    final scanner = FlutterBluePlusScanner(api);
+    await Future.wait([
+      scanner.start(ScanProfile.balanced),
+      scanner.start(ScanProfile.balanced),
+    ]);
+    expect(api.startCalls, 1);
   });
 }
