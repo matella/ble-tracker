@@ -21,26 +21,20 @@ class BlueZApiImpl implements BlueZApi {
 
   @override
   Stream<ScanObservation> scanResults() {
-    // Merges (a) an observation for every newly-added device plus its
-    // subsequent RSSI-bearing property changes, with (b) RSSI property
-    // changes for devices already known when this is called — otherwise
-    // devices seen before scanResults() was subscribed would only ever
-    // yield their first observation.
     final group = StreamGroup<ScanObservation>();
-    group.add(_client.deviceAdded.asyncExpand((device) async* {
-      yield _toObservation(device);
-      yield* device.propertiesChanged
-          .where((props) => props.contains('RSSI'))
-          .map((_) => _toObservation(device));
+
+    void watchRssi(BlueZDevice device) => group.add(device.propertiesChanged
+        .where((props) => props.contains('RSSI'))
+        .map((_) => _toObservation(device)));
+
+    _client.devices.forEach(watchRssi);
+    group.add(_client.deviceAdded.map((device) {
+      // deviceAdded is a broadcast stream: registering the per-device RSSI
+      // stream as a side effect here runs immediately per event, unlike
+      // asyncExpand which would serialize on the never-ending inner streams.
+      watchRssi(device);
+      return _toObservation(device);
     }));
-    for (final device in _client.devices) {
-      group.add(device.propertiesChanged
-          .where((props) => props.contains('RSSI'))
-          .map((_) => _toObservation(device)));
-    }
-    // No close(): deviceAdded never completes on its own, so the merged
-    // stream would never finish regardless — nothing is gained by closing
-    // the group to further additions.
     return group.stream;
   }
 
