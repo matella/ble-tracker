@@ -113,4 +113,38 @@ void main() {
     await pumpEventQueue();
     expect(observations, isEmpty); // resumed tick must not emit post-dispose
   });
+
+  test('unsupported browser: start then stop does not throw', () async {
+    final api = FakeWebApi()..supported = false;
+    final ticks = StreamController<DateTime>.broadcast();
+    final scanner = WebBluetoothScanner(api: api, pollTicks: ticks.stream);
+    final statuses = <ScannerStatus>[];
+    scanner.status().listen(statuses.add);
+    await scanner.start(ScanProfile.balanced);
+    await scanner.stop(); // must not throw
+    await pumpEventQueue();
+    expect(statuses.last, ScannerStatus.unauthorized);
+  });
+
+  test('start while unavailable is a no-op, auto-resume still works', () async {
+    final api = FakeWebApi();
+    final ticks = StreamController<DateTime>.broadcast();
+    final scanner = WebBluetoothScanner(api: api, pollTicks: ticks.stream);
+    final statuses = <ScannerStatus>[];
+    scanner.status().listen(statuses.add);
+    await scanner.start(ScanProfile.balanced);
+    scanner.onAdapterChanged(false);
+    await scanner.start(ScanProfile.balanced); // must not throw
+    scanner.onAdapterChanged(true);
+    await pumpEventQueue();
+    expect(statuses.last, ScannerStatus.scanning);
+  });
+
+  test('pairNewDevice on unsupported browser is a no-op', () async {
+    final api = FakeWebApi()..supported = false..nextRequestedDevice = 'x';
+    final ticks = StreamController<DateTime>.broadcast();
+    final scanner = WebBluetoothScanner(api: api, pollTicks: ticks.stream);
+    await scanner.pairNewDevice(); // must not throw
+    expect(api.rssiById, isEmpty); // requestDevice never called
+  });
 }

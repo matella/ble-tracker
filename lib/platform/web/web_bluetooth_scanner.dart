@@ -54,6 +54,7 @@ class WebBluetoothScanner implements BleScanner {
   /// Tier C manual-discovery entry point (FR-3): invokes the browser's
   /// device chooser. Must be called from a user gesture.
   Future<void> pairNewDevice() async {
+    if (!_api.isSupported) return;
     await _api.requestDevice();
   }
 
@@ -86,18 +87,28 @@ class WebBluetoothScanner implements BleScanner {
 
   @override
   Future<void> start(ScanProfile profile) async {
-    if (_machine.status == ScannerStatus.scanning) return;
     if (!_api.isSupported) {
-      _apply(ScannerEvent.permissionRevoked); // surfaces unauthorized on Safari
+      // Tier C belt-and-braces: unsupported surfaces as unauthorized (real
+      // UX handled by PlatformCapabilities-driven UI).
+      if (_machine.status != ScannerStatus.unauthorized) {
+        _apply(ScannerEvent.permissionRevoked);
+      }
       return;
     }
+    if (_machine.status != ScannerStatus.idle) return;
     _apply(ScannerEvent.start);
   }
 
   @override
   Future<void> stop() async {
-    if (_machine.status == ScannerStatus.idle) return;
-    _apply(ScannerEvent.stop);
+    switch (_machine.status) {
+      case ScannerStatus.scanning:
+      case ScannerStatus.unavailable:
+        _apply(ScannerEvent.stop);
+      case ScannerStatus.idle:
+      case ScannerStatus.unauthorized:
+        return; // no-op — no legal stop transition from these states
+    }
   }
 
   /// Releases the tick subscription and closes the output streams. Not part

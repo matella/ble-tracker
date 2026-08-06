@@ -17,5 +17,6 @@ abstract interface class WebBluetoothApi {
   Future<String?> deviceName(String deviceId);
 
   /// Ids of all devices paired so far this session.
+  /// Implementations MUST return a fresh snapshot list — the poll loop iterates across awaits.
   List<String> get pairedDeviceIds;
 }
