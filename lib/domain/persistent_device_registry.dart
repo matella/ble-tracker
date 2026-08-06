@@ -27,33 +27,45 @@ class PersistentDeviceRegistry implements DeviceRegistry {
   }
 
   Future<void> _save(Map<String, RegisteredDevice> devices) async {
-    _cache = devices;
     await _store.write(
         storageKey, jsonEncode(devices.values.map((d) => d.toJson()).toList()));
+    _cache = devices;
     _controller.add(devices.values.toList());
   }
 
   @override
   Stream<List<RegisteredDevice>> watchAll() {
-    late StreamSubscription<List<RegisteredDevice>> subscription;
-    late StreamController<List<RegisteredDevice>> output;
-
+    late final StreamController<List<RegisteredDevice>> output;
+    StreamSubscription<List<RegisteredDevice>>? subscription;
     output = StreamController<List<RegisteredDevice>>(
       onListen: () async {
-        // Emit current state immediately when listener attaches
-        output.add((await _load()).values.toList());
-        // Subscribe to future changes
-        subscription = _controller.stream.listen(
-          output.add,
-          onError: output.addError,
-          onDone: output.close,
-        );
+        // Subscribe before any await so no update can be missed; buffer
+        // updates until the initial snapshot is resolved.
+        final buffered = <List<RegisteredDevice>>[];
+        subscription = _controller.stream.listen(buffered.add);
+        try {
+          final snapshot = (await _load()).values.toList();
+          if (buffered.isEmpty) {
+            output.add(snapshot);
+          } else {
+            // Buffered updates are complete lists at least as fresh as the
+            // snapshot — emit them instead to avoid going backwards.
+            buffered.forEach(output.add);
+          }
+        } catch (error, stackTrace) {
+          output.addError(error, stackTrace);
+        }
+        // No await between draining the buffer and rewiring, so nothing
+        // can slip through the gap.
+        subscription!
+          ..onData(output.add)
+          ..onError(output.addError);
       },
       onCancel: () async {
-        await subscription.cancel();
+        await subscription?.cancel();
+        await output.close();
       },
     );
-
     return output.stream;
   }
 

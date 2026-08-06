@@ -13,6 +13,18 @@ class FakeStore implements KeyValueStore {
   Future<void> write(String key, String value) async => data[key] = value;
 }
 
+class _FailingStore implements KeyValueStore {
+  bool failWrites = true;
+  final Map<String, String> data = {};
+  @override
+  Future<String?> read(String key) async => data[key];
+  @override
+  Future<void> write(String key, String value) async {
+    if (failWrites) throw StateError('disk full');
+    data[key] = value;
+  }
+}
+
 RegisteredDevice dev(String id, {bool tracking = true}) => RegisteredDevice(
     id: id, name: 'name-$id', type: DeviceType.tag, trackingEnabled: tracking);
 
@@ -78,5 +90,19 @@ void main() {
     expect((await registry.watchAll().first).length, 1000);
     expect(
         (await PersistentDeviceRegistry(store).watchAll().first).length, 1000);
+  });
+
+  test('synchronous listen+cancel does not throw', () async {
+    final sub = registry.watchAll().listen((_) {});
+    await sub.cancel();
+    await pumpEventQueue();
+  });
+
+  test('failed write leaves registry state unchanged', () async {
+    final failing = _FailingStore();
+    final r = PersistentDeviceRegistry(failing);
+    await expectLater(r.register(dev('a')), throwsA(isA<StateError>()));
+    failing.failWrites = false;
+    expect(await r.watchAll().first, isEmpty);
   });
 }
