@@ -8,6 +8,7 @@ import 'platform/default_platform_capabilities.dart';
 import 'platform/scanner_factory_io.dart'
     if (dart.library.js_interop) 'platform/scanner_factory_web.dart';
 import 'platform/shared_prefs_store.dart';
+import 'platform/unavailable_ble_scanner.dart';
 import 'state/providers.dart';
 import 'ui/app.dart';
 
@@ -24,7 +25,15 @@ Future<void> main() async {
   // the second listener otherwise.
   final ticks = Stream<DateTime>.periodic(
       const Duration(seconds: 1), (_) => DateTime.now()).asBroadcastStream();
-  final BleScanner scanner = await createScanner(caps, ticks);
+  late final BleScanner scanner;
+  try {
+    scanner = await createScanner(caps, ticks);
+  } on Object catch (error) {
+    // Real scanner init failed (e.g. BlueZ D-Bus unreachable): run degraded
+    // rather than crashing before any UI exists (NFR-6).
+    debugPrint('BLE scanner init failed, running degraded: $error');
+    scanner = UnavailableBleScanner();
+  }
   runApp(ProviderScope(
     overrides: [
       bleScannerProvider.overrideWithValue(scanner),
