@@ -17,13 +17,20 @@ class PersistentDeviceRegistry implements DeviceRegistry {
   Future<Map<String, RegisteredDevice>> _load() async {
     if (_cache != null) return _cache!;
     final raw = await _store.read(storageKey);
-    final list = raw == null
-        ? <RegisteredDevice>[]
-        : (jsonDecode(raw) as List<Object?>)
-            .map((e) =>
-                RegisteredDevice.fromJson(e! as Map<String, Object?>))
-            .toList();
-    return _cache = {for (final d in list) d.id: d};
+    if (raw == null) return _cache = {};
+    try {
+      final list = (jsonDecode(raw) as List<Object?>)
+          .map((e) => RegisteredDevice.fromJson(e! as Map<String, Object?>))
+          .toList();
+      return _cache = {for (final d in list) d.id: d};
+    } on Object {
+      // Corrupt/unparseable store contents (bad JSON, wrong shape, etc.):
+      // treat as an empty registry so the app — and future register() calls
+      // — can recover, rather than every registry op throwing forever. The
+      // raw string is left untouched in the store; only a subsequent
+      // successful _save overwrites it.
+      return _cache = {};
+    }
   }
 
   Future<void> _save(Map<String, RegisteredDevice> devices) async {

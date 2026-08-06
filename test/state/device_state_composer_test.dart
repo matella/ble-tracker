@@ -156,6 +156,21 @@ void main() {
     expect(emitted.last.keys, ['b']);
   });
 
+  test('a registry stream error does not crash the composer — it keeps '
+      'emitting once a normal update follows', () async {
+    registry.addError(StateError('corrupt store'));
+    await pump();
+    expect(emitted, isEmpty); // nothing to emit yet, but no crash either
+
+    registry.add([dev('a')]);
+    await pump();
+    expect(emitted.last['a']!.visibility, DeviceVisibility.notVisible);
+
+    observations.add(obs('a', t0));
+    await pump();
+    expect(emitted.last['a']!.visibility, DeviceVisibility.visible);
+  });
+
   test('stale device is not resurrected by an unrelated registry emission',
       () async {
     registry.add([dev('a'), dev('b')]);

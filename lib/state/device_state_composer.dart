@@ -20,11 +20,18 @@ class DeviceStateComposer {
         _estimator = estimator,
         _config = config {
     _subs = [
-      registry.listen(_onRegistry),
-      observations.listen(_onObservation),
-      ticks.listen(_onTick),
+      // onError: a stream error here (e.g. a registry recovering from a
+      // corrupt store, see PersistentDeviceRegistry._load) must not become
+      // an unhandled zone error — swallow it and keep serving from the
+      // composer's last-good in-memory state; the source stream is
+      // expected to keep emitting afterwards.
+      registry.listen(_onRegistry, onError: _ignoreError),
+      observations.listen(_onObservation, onError: _ignoreError),
+      ticks.listen(_onTick, onError: _ignoreError),
     ];
   }
+
+  void _ignoreError(Object error, StackTrace stackTrace) {}
 
   final RssiSmoother _smoother;
   final DistanceEstimator _estimator;

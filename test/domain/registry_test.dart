@@ -166,6 +166,20 @@ void main() {
     await sub.cancel();
   });
 
+  test('corrupt store contents are treated as an empty registry, and '
+      'register() recovers', () async {
+    final corrupt = FakeStore();
+    corrupt.data[PersistentDeviceRegistry.storageKey] = 'not json';
+    final r = PersistentDeviceRegistry(corrupt);
+
+    expect(await r.watchAll().first, isEmpty);
+
+    await r.register(dev('a'));
+    expect(await r.watchAll().first, [dev('a')]);
+    // The next successful save overwrote the corrupt raw string.
+    expect(await PersistentDeviceRegistry(corrupt).watchAll().first, [dev('a')]);
+  });
+
   test('watchAll surfaces an error from the initial load to subscribers',
       () async {
     final r = PersistentDeviceRegistry(_ThrowingReadStore());
