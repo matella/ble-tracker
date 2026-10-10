@@ -19,13 +19,15 @@ flutter test test/domain/kalman_rssi_smoother_test.dart   # single file
 flutter test --coverage && dart run tool/coverage_gate.dart
                                        # gate FAILS below 100% line coverage
                                        # on lib/domain/ + lib/state/ (skips *.g.dart)
-dart run build_runner build --delete-conflicting-outputs  # riverpod codegen; commit the .g.dart
+dart run build_runner build                             # riverpod codegen; commit the .g.dart
 flutter test --update-goldens test/ui/radar_golden_test.dart  # regen goldens (test/ui/goldens/)
 ```
 
-CI (`.github/workflows/ci.yml`) runs analyze + coverage + gate on pushes to `main` and PRs. The Flutter version pinned in `pubspec.yaml` (`environment: flutter:`) is what CI installs and doubles as the golden-renderer pin — keep it in sync with the local SDK.
+CI (`.github/workflows/ci.yml`) runs on pushes to `main` and PRs: Ubuntu (analyze, coverage, gate, radar hash test under Chrome), Windows (analyze, coverage, gate, `flutter build windows`), and Android (debug APKs for phone and `WEAR_OS=true`, compile-only). The Flutter version pinned in `pubspec.yaml` (`environment: flutter:`) is what CI installs and doubles as the golden-renderer pin — keep it in sync with the local SDK.
 
 ## Architecture
+
+The data flow, provider map, and platform adapters are in `docs/ARCHITECTURE.md`. The rules below are the ones that must hold.
 
 Spec-driven: `ble-tracker-spec.md` is the authority (FR/NFR numbers referenced in code comments and tests map to it). The layering is strict and every boundary is a Dart `abstract interface class` in `lib/domain/interfaces.dart`:
 
