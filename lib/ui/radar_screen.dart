@@ -74,6 +74,10 @@ class RadarScreenState extends ConsumerState<RadarScreen>
                 child: AnimatedBuilder(
                   animation: _sweep,
                   builder: (context, _) {
+                    // Assigns fields from inside the builder on purpose: this
+                    // closure runs once per sweep frame, and the tap handler
+                    // reads `currentBlips` to hit-test against exactly the
+                    // blips that were last painted (and their fade radii).
                     currentBlips = radarBlipsFrom(
                       states,
                       DateTime.now(),

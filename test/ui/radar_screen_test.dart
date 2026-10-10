@@ -51,6 +51,30 @@ void main() {
     expect(find.textContaining('near'), findsOneWidget); // band
   });
 
+  testWidgets('tap away from any blip opens no detail sheet', (tester) async {
+    final scanner = FakeBleScanner();
+    await tester.pumpWidget(ProviderScope(
+      overrides: overridesWith(
+          registry: RecordingRegistry([dev('a')]), scanner: scanner),
+      child: const MaterialApp(home: RadarScreen()),
+    ));
+    await tester.pump();
+    await scanner.start(ScanProfile.balanced);
+    scanner.emit(ScanObservation(
+        deviceId: 'a', rssi: -59, txPower: -59, timestamp: DateTime.utc(2026)));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 16));
+
+    // The canvas corner is well outside every blip's hit radius.
+    final box =
+        tester.renderObject<RenderBox>(find.byKey(const Key('radar-canvas')));
+    await tester.tapAt(box.localToGlobal(const Offset(2, 2)));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(find.byType(DeviceDetailSheet), findsNothing);
+  });
+
   testWidgets('sweep animation advances between frames', (tester) async {
     await tester.pumpWidget(ProviderScope(
       overrides: overridesWith(

@@ -37,6 +37,7 @@ class DeviceListScreen extends ConsumerWidget {
               children: [
                 for (final s in states.values)
                   ListTile(
+                    key: ValueKey('device-${s.device.id}'),
                     leading: Icon(_iconFor(s.device.type)),
                     title: Text(s.device.name),
                     subtitle: Text(_statusLine(s)),

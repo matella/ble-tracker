@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -15,6 +17,28 @@ class DiscoveryScreen extends ConsumerStatefulWidget {
 
 class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
   final Map<String, ScanObservation> _seen = {};
+  StreamSubscription<DateTime>? _tickSub;
+
+  @override
+  void initState() {
+    super.initState();
+    // Injected time (CLAUDE.md invariant): prune via the ticker, not the wall
+    // clock, so a device that stops advertising drops off the list.
+    _tickSub = ref.read(tickerProvider).listen(_prune);
+  }
+
+  @override
+  void dispose() {
+    _tickSub?.cancel();
+    super.dispose();
+  }
+
+  void _prune(DateTime now) {
+    final staleAfter = ref.read(proximityConfigProvider).staleAfter;
+    final before = _seen.length;
+    _seen.removeWhere((_, o) => now.difference(o.timestamp) >= staleAfter);
+    if (_seen.length != before) setState(() {});
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -31,6 +55,7 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
         children: [
           for (final o in unregistered)
             ListTile(
+              key: ValueKey('discovered-${o.deviceId}'),
               leading: const Icon(Icons.bluetooth_searching),
               title: Text(o.advertisedName ?? o.deviceId),
               subtitle: Text('${o.rssi.toStringAsFixed(0)} dBm'),

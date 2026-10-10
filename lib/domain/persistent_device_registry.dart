@@ -13,6 +13,18 @@ class PersistentDeviceRegistry implements DeviceRegistry {
   final KeyValueStore _store;
   final _controller = StreamController<List<RegisteredDevice>>.broadcast();
   Map<String, RegisteredDevice>? _cache;
+  // Every mutation reads the whole map, changes it, and writes it back. Two
+  // overlapping mutations would both start from the same snapshot and the
+  // second write would drop the first change, so they run one at a time.
+  Future<void> _queue = Future<void>.value();
+
+  /// Runs [op] after every previously queued mutation. A failing [op] rejects
+  /// only its own caller; the queue keeps moving for the operations behind it.
+  Future<T> _serialize<T>(Future<T> Function() op) {
+    final result = _queue.then((_) => op());
+    _queue = result.then<void>((_) {}, onError: (_) {});
+    return result;
+  }
 
   Future<Map<String, RegisteredDevice>> _load() async {
     if (_cache != null) return _cache!;
@@ -77,11 +89,11 @@ class PersistentDeviceRegistry implements DeviceRegistry {
   }
 
   @override
-  Future<void> register(RegisteredDevice device) async {
-    final devices = Map.of(await _load());
-    devices[device.id] = device;
-    await _save(devices);
-  }
+  Future<void> register(RegisteredDevice device) => _serialize(() async {
+        final devices = Map.of(await _load());
+        devices[device.id] = device;
+        await _save(devices);
+      });
 
   Future<RegisteredDevice> _require(String deviceId) async {
     final device = (await _load())[deviceId];
@@ -92,25 +104,26 @@ class PersistentDeviceRegistry implements DeviceRegistry {
   }
 
   @override
-  Future<void> setTracking(String deviceId, bool enabled) async {
-    final device = await _require(deviceId);
-    final devices = Map.of(_cache!);
-    devices[deviceId] = device.copyWith(trackingEnabled: enabled);
-    await _save(devices);
-  }
+  Future<void> setTracking(String deviceId, bool enabled) =>
+      _serialize(() async {
+        final device = await _require(deviceId);
+        final devices = Map.of(_cache!);
+        devices[deviceId] = device.copyWith(trackingEnabled: enabled);
+        await _save(devices);
+      });
 
   @override
-  Future<void> rename(String deviceId, String name) async {
-    final device = await _require(deviceId);
-    final devices = Map.of(_cache!);
-    devices[deviceId] = device.copyWith(name: name);
-    await _save(devices);
-  }
+  Future<void> rename(String deviceId, String name) => _serialize(() async {
+        final device = await _require(deviceId);
+        final devices = Map.of(_cache!);
+        devices[deviceId] = device.copyWith(name: name);
+        await _save(devices);
+      });
 
   @override
-  Future<void> remove(String deviceId) async {
-    await _require(deviceId);
-    final devices = Map.of(_cache!)..remove(deviceId);
-    await _save(devices);
-  }
+  Future<void> remove(String deviceId) => _serialize(() async {
+        await _require(deviceId);
+        final devices = Map.of(_cache!)..remove(deviceId);
+        await _save(devices);
+      });
 }

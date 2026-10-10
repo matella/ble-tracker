@@ -189,4 +189,60 @@ void main() {
     expect(errors.single, isA<StateError>());
     await sub.cancel();
   });
+
+  test('overlapping mutations do not lose each other (no lost update)',
+      () async {
+    final gated = _GatedWriteStore();
+    final r = PersistentDeviceRegistry(gated);
+    final first = r.register(dev('a'));
+    final second = r.register(dev('b'));
+    await pumpEventQueue();
+    // The first write is still blocked; the second mutation must wait for it
+    // rather than start from the same snapshot.
+    expect(gated.writes, 1);
+
+    gated.release();
+    await Future.wait([first, second]);
+    final list = await r.watchAll().first;
+    expect(list.map((d) => d.id), unorderedEquals(['a', 'b']));
+  });
+
+  test('a failing mutation rejects its caller but not the ones queued behind',
+      () async {
+    final gated = _GatedWriteStore(failFirst: true);
+    final r = PersistentDeviceRegistry(gated);
+    final failing = r.register(dev('a'));
+    final next = r.register(dev('b'));
+    final failure = expectLater(failing, throwsStateError);
+    gated.release();
+    await failure;
+    await next;
+    final list = await r.watchAll().first;
+    expect(list.map((d) => d.id), ['b']);
+  });
+}
+
+/// Write blocks until [release] is called; the first write can be made to fail.
+class _GatedWriteStore implements KeyValueStore {
+  _GatedWriteStore({this.failFirst = false});
+
+  final bool failFirst;
+  final Map<String, String> data = {};
+  final _gate = Completer<void>();
+  int writes = 0;
+
+  @override
+  Future<String?> read(String key) async => data[key];
+
+  @override
+  Future<void> write(String key, String value) async {
+    writes++;
+    await _gate.future;
+    if (failFirst && writes == 1) throw StateError('disk full');
+    data[key] = value;
+  }
+
+  void release() {
+    if (!_gate.isCompleted) _gate.complete();
+  }
 }
