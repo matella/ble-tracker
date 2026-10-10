@@ -166,6 +166,67 @@ abstract class _$EnvironmentFactor extends $Notifier<double> {
   }
 }
 
+/// FR-19 Tier B: true from the moment the app returns from the background
+/// until the next scan observation confirms updates are flowing again.
+
+@ProviderFor(ResumeNotice)
+final resumeNoticeProvider = ResumeNoticeProvider._();
+
+/// FR-19 Tier B: true from the moment the app returns from the background
+/// until the next scan observation confirms updates are flowing again.
+final class ResumeNoticeProvider extends $NotifierProvider<ResumeNotice, bool> {
+  /// FR-19 Tier B: true from the moment the app returns from the background
+  /// until the next scan observation confirms updates are flowing again.
+  ResumeNoticeProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'resumeNoticeProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$resumeNoticeHash();
+
+  @$internal
+  @override
+  ResumeNotice create() => ResumeNotice();
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(bool value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<bool>(value),
+    );
+  }
+}
+
+String _$resumeNoticeHash() => r'f395bebe69a7bc68be220b88c16aff6313920b9b';
+
+/// FR-19 Tier B: true from the moment the app returns from the background
+/// until the next scan observation confirms updates are flowing again.
+
+abstract class _$ResumeNotice extends $Notifier<bool> {
+  bool build();
+  @$mustCallSuper
+  @override
+  WhenComplete runBuild() {
+    final ref = this.ref as $Ref<bool, bool>;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<bool, bool>,
+              bool,
+              Object?,
+              Object?
+            >;
+    return element.handleCreate(ref, build);
+  }
+}
+
 @ProviderFor(proximityConfig)
 final proximityConfigProvider = ProximityConfigProvider._();
 

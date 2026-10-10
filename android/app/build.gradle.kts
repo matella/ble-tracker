@@ -44,3 +44,9 @@ kotlin {
 flutter {
     source = "../.."
 }
+
+dependencies {
+    // Wear OS ambient mode (AmbientLifecycleObserver). Inert on phones: the
+    // observer is only registered on watch hardware (see MainActivity).
+    implementation("androidx.wear:wear:1.4.0")
+}

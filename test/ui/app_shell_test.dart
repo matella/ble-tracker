@@ -10,6 +10,7 @@ import 'device_list_screen_test.dart' show RecordingRegistry, overridesWith;
 
 void main() {
   _addVisibilityTests();
+  _addResumeNoticeTests();
 
   testWidgets(
       'NFR-4: radar tab starts lowLatency scan, devices tab switches to balanced',
@@ -147,6 +148,53 @@ void _addVisibilityTests() {
     await tester.pump();
     await tester.pump();
     expect(scanner.startedProfiles, [ScanProfile.lowLatency]); // not restarted
+  });
+}
+
+void _addResumeNoticeTests() {
+  testWidgets(
+      'FR-19 Tier B: returning from background shows the paused notice until the next observation',
+      (tester) async {
+    final scanner = FakeBleScanner();
+    await tester.pumpWidget(ProviderScope(
+      overrides: overridesWith(
+          registry: RecordingRegistry([]),
+          scanner: scanner,
+          tier: CapabilityTier.tierB),
+      child: const BleTrackerApp(),
+    ));
+    await tester.pump();
+    await tester.pump();
+    expect(find.textContaining('paused in the background'), findsNothing);
+
+    _hide(tester);
+    _show(tester);
+    await tester.pump();
+    await tester.pump();
+    expect(find.textContaining('paused in the background'), findsWidgets);
+
+    scanner.emit(ScanObservation(
+        deviceId: 'x', rssi: -60, timestamp: DateTime.utc(2026)));
+    await tester.pump();
+    await tester.pump();
+    expect(find.textContaining('paused in the background'), findsNothing);
+  });
+
+  testWidgets('Tier A does not show the resume notice', (tester) async {
+    final scanner = FakeBleScanner();
+    await tester.pumpWidget(ProviderScope(
+      overrides: overridesWith(
+          registry: RecordingRegistry([]), scanner: scanner),
+      child: const BleTrackerApp(),
+    ));
+    await tester.pump();
+    await tester.pump();
+
+    _hide(tester);
+    _show(tester);
+    await tester.pump();
+    await tester.pump();
+    expect(find.textContaining('paused in the background'), findsNothing);
   });
 }
 

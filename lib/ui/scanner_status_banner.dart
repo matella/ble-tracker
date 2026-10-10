@@ -13,6 +13,7 @@ class ScannerStatusBanner extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final status = ref.watch(scannerStatusProvider).value;
+    final resuming = ref.watch(resumeNoticeProvider);
     final scheme = Theme.of(context).colorScheme;
     final (text, background, foreground) = switch (status) {
       ScannerStatus.unavailable => (
@@ -24,6 +25,12 @@ class ScannerStatusBanner extends ConsumerWidget {
           'Bluetooth permission needed — grant permission to scan.',
           scheme.errorContainer,
           scheme.onErrorContainer,
+        ),
+      // Lower priority than a broken scanner: only shown while scanning works.
+      _ when resuming => (
+          'Updates were paused in the background — resuming.',
+          scheme.secondaryContainer,
+          scheme.onSecondaryContainer,
         ),
       _ => (null, Colors.transparent, Colors.transparent),
     };

@@ -1,10 +1,17 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.BLUETOOTH_SCAN" android:usesPermissionFlags="neverForLocation" />
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <!-- Same APK for phone and Wear OS. Declaring the watch feature as optional
+         keeps phones eligible; the standalone flag lets the watch run without a
+         paired phone app. Both are ignored on phones. -->
+    <uses-feature android:name="android.hardware.type.watch" android:required="false" />
     <application
         android:label="ble_tracker"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
+        <meta-data
+            android:name="com.google.android.wearable.standalone"
+            android:value="true" />
         <activity
             android:name=".MainActivity"
             android:exported="true"
