@@ -22,6 +22,11 @@ jobs:
       - run: flutter analyze --fatal-infos
       - run: flutter test --coverage
       - run: dart run tool/coverage_gate.dart
+      # Radar hash parity on dart2js (the web build). Chrome is preinstalled
+      # on the Ubuntu runner.
+      - name: Radar hash parity (Chrome / dart2js)
+        run: flutter test --platform chrome test/domain/radar_layout_test.dart
+        timeout-minutes: 20
 
   windows:
     runs-on: windows-latest
@@ -37,3 +42,23 @@ jobs:
       - run: flutter test --coverage
       - run: dart run tool/coverage_gate.dart
       - run: flutter build windows --debug
+
+  android:
+    # Compile-only: no emulator or watch runs here. Covers the Kotlin in
+    # android/ for both the phone build and the Wear OS build (same module,
+    # selected by --dart-define=WEAR_OS=true).
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version-file: pubspec.yaml
+          cache: true
+      - run: flutter pub get
+      - run: flutter build apk --debug
+      - run: flutter build apk --debug --dart-define=WEAR_OS=true
