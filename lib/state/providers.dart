@@ -45,6 +45,18 @@ class EnvironmentFactor extends _$EnvironmentFactor {
   }
 }
 
+/// FR-19 Tier B: true from the moment the app returns from the background
+/// until the next scan observation confirms updates are flowing again.
+@Riverpod(keepAlive: true)
+class ResumeNotice extends _$ResumeNotice {
+  @override
+  bool build() => false;
+
+  void show() => state = true;
+
+  void clear() => state = false;
+}
+
 @Riverpod(keepAlive: true)
 ProximityConfig proximityConfig(Ref ref) =>
     ProximityConfig(environmentFactor: ref.watch(environmentFactorProvider));

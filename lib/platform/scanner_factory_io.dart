@@ -7,6 +7,7 @@ import 'bluez/bluez_api_impl.dart';
 import 'bluez/bluez_scanner.dart';
 import 'fbp/fbp_api_impl.dart';
 import 'fbp/flutter_blue_plus_scanner.dart';
+import 'wear/ambient_channel.dart';
 import 'wear/wear_scanner.dart';
 
 /// Non-web factory: Linux talks to BlueZ directly over D-Bus (OQ-2 —
@@ -18,11 +19,9 @@ Future<BleScanner> createScanner(
   final BleScanner base =
       Platform.isLinux ? await _blueZScanner() : FlutterBluePlusScanner(FbpApiImpl());
   if (const bool.fromEnvironment('WEAR_OS')) {
-    // Ambient (watch-face-visible) detection is wired via a real plugin
-    // stream (e.g. flutter_wear_os_connectivity) in the Wear OS flavor's
-    // own bootstrap; a stream that never fires is functionally correct
-    // here too — WearScanner just never downgrades to balanced (FR-19).
-    return WearScanner(inner: base, isAmbient: const Stream<bool>.empty());
+    // Ambient mode comes from the watch host activity (MainActivity.kt via an
+    // EventChannel). WearScanner drops to balanced scanning while ambient (FR-19).
+    return WearScanner(inner: base, isAmbient: wearAmbientChannel());
   }
   return base;
 }

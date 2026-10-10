@@ -23,6 +23,7 @@ class _BleTrackerAppState extends ConsumerState<BleTrackerApp> {
   // On web, AppLifecycleState.hidden is the "tab no longer visible" signal.
   late final AppLifecycleListener _lifecycle;
   bool _pausedByVisibility = false;
+  bool _hiddenSinceShown = false;
 
   static const _profiles = [
     ScanProfile.lowLatency, // radar (NFR-4)
@@ -48,7 +49,11 @@ class _BleTrackerAppState extends ConsumerState<BleTrackerApp> {
   bool get _isTierC =>
       ref.read(platformCapabilitiesProvider).tier == CapabilityTier.tierC;
 
+  bool get _isTierB =>
+      ref.read(platformCapabilitiesProvider).tier == CapabilityTier.tierB;
+
   void _onHidden() {
+    _hiddenSinceShown = true;
     if (!_isTierC) return;
     // Only resume what this visibility change stopped: a scanner that was
     // already idle or unauthorized must not be started later by mistake.
@@ -63,6 +68,13 @@ class _BleTrackerAppState extends ConsumerState<BleTrackerApp> {
   }
 
   void _onShown() {
+    final wasHidden = _hiddenSinceShown;
+    _hiddenSinceShown = false;
+    // FR-19 Tier B: the OS throttled scanning while we were away. Say so until
+    // the next observation proves updates are flowing again.
+    if (wasHidden && _isTierB) {
+      ref.read(resumeNoticeProvider.notifier).show();
+    }
     if (!_pausedByVisibility) return;
     _pausedByVisibility = false;
     ref
@@ -90,6 +102,10 @@ class _BleTrackerAppState extends ConsumerState<BleTrackerApp> {
 
   @override
   Widget build(BuildContext context) {
+    // The first scan result after a resume means updates are flowing again.
+    ref.listen(discoveryObservationsProvider, (_, next) {
+      if (next.hasValue) ref.read(resumeNoticeProvider.notifier).clear();
+    });
     return MaterialApp(
       title: 'BLE Tracker',
       theme: ThemeData.dark(),

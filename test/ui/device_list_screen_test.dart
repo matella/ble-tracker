@@ -54,6 +54,7 @@ List<Override> overridesWith({
       DefaultPlatformCapabilities(
         platform: TargetPlatform.android,
         isWeb: tier == CapabilityTier.tierC,
+        isWatch: tier == CapabilityTier.tierB,
       ),
     ),
   ];
