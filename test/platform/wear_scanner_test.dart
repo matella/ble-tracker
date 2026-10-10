@@ -62,6 +62,49 @@ void main() {
     await pumpEventQueue();
     expect(inner.profiles.last, ScanProfile.lowLatency); // restore on exit
   });
+
+  test('ambient change while inner is unavailable does not restart it',
+      () async {
+    final inner = _StatusScanner();
+    final ambient = StreamController<bool>.broadcast();
+    final scanner = WearScanner(inner: inner, isAmbient: ambient.stream);
+    await scanner.start(ScanProfile.lowLatency);
+    inner.statusCtrl.add(ScannerStatus.unavailable);
+    await pumpEventQueue();
+
+    ambient.add(true);
+    await pumpEventQueue();
+    expect(inner.stops, 0);
+    expect(inner.profiles, [ScanProfile.lowLatency]);
+  });
+
+  test('rapid ambient toggles are applied in arrival order', () async {
+    final inner = _ProfileRecordingScanner();
+    final ambient = StreamController<bool>.broadcast();
+    final scanner = WearScanner(inner: inner, isAmbient: ambient.stream);
+    await scanner.start(ScanProfile.lowLatency);
+
+    ambient.add(true);
+    ambient.add(false);
+    ambient.add(true);
+    await pumpEventQueue();
+    // Each transition restarts once; the last one leaves the scanner in the
+    // ambient profile, with no interleaved restart from an earlier event.
+    expect(inner.profiles.last, ScanProfile.balanced);
+    expect(inner.stops, 3);
+  });
+
+  test('dispose cancels the ambient and status subscriptions', () async {
+    final inner = _StatusScanner();
+    final ambient = StreamController<bool>.broadcast();
+    final scanner = WearScanner(inner: inner, isAmbient: ambient.stream);
+    await scanner.start(ScanProfile.lowLatency);
+    scanner.dispose();
+    await pumpEventQueue();
+
+    expect(ambient.hasListener, isFalse);
+    expect(inner.statusCtrl.hasListener, isFalse);
+  });
 }
 
 class _ProfileRecordingScanner implements BleScanner {
@@ -75,4 +118,11 @@ class _ProfileRecordingScanner implements BleScanner {
   Future<void> start(ScanProfile profile) async => profiles.add(profile);
   @override
   Future<void> stop() async => stops++;
+}
+
+/// Like [_ProfileRecordingScanner], but lets a test push inner status changes.
+class _StatusScanner extends _ProfileRecordingScanner {
+  final statusCtrl = StreamController<ScannerStatus>.broadcast();
+  @override
+  Stream<ScannerStatus> status() => statusCtrl.stream;
 }

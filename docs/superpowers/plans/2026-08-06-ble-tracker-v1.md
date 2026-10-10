@@ -4308,3 +4308,5 @@ git commit -m "feat: add app shell, platform wiring, coverage gate, manual check
 | OQ-3 (global n, v1) | 2 (config; per-device deferred per spec) |
 
 Known deliberate v1 gaps (spec-sanctioned): Android foreground service for background scanning and Wear ambient-stream plugin wiring are platform-glue tasks verified via the manual checklist, not unit tests; Tier B "updates paused" resume notice is covered by the status banner pattern and manual checklist item 5. FR-9's "user-tunable in settings" clause is also descoped from v1: ProximityConfig is injected and ready to be driven by user input, but no settings UI exists yet — follow-up. FR-19's Tier C "stops when tab hidden" behavior has no page-visibility handling yet either — WebBluetoothScanner keeps polling on a hidden tab today — follow-up.
+
+**Status (after v1):** both follow-ups are done. The settings screen (Devices → Settings) sets the environment factor and persists it (#20). Tier C pauses scanning while the tab is hidden (#21). Tier B's "updates paused" notice and real Wear ambient wiring remain open (#25).

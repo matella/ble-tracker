@@ -19,6 +19,10 @@ class BleTrackerApp extends ConsumerStatefulWidget {
 
 class _BleTrackerAppState extends ConsumerState<BleTrackerApp> {
   int _tab = 0;
+  // FR-19 Tier C: scanning stops entirely while the browser tab is hidden.
+  // On web, AppLifecycleState.hidden is the "tab no longer visible" signal.
+  late final AppLifecycleListener _lifecycle;
+  bool _pausedByVisibility = false;
 
   static const _profiles = [
     ScanProfile.lowLatency, // radar (NFR-4)
@@ -29,9 +33,42 @@ class _BleTrackerAppState extends ConsumerState<BleTrackerApp> {
   @override
   void initState() {
     super.initState();
+    _lifecycle = AppLifecycleListener(onHide: _onHidden, onShow: _onShown);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(bleScannerProvider).start(_profiles[_tab]);
     });
+  }
+
+  @override
+  void dispose() {
+    _lifecycle.dispose();
+    super.dispose();
+  }
+
+  bool get _isTierC =>
+      ref.read(platformCapabilitiesProvider).tier == CapabilityTier.tierC;
+
+  void _onHidden() {
+    if (!_isTierC) return;
+    // Only resume what this visibility change stopped: a scanner that was
+    // already idle or unauthorized must not be started later by mistake.
+    if (ref.read(scannerStatusProvider).value != ScannerStatus.scanning) {
+      return;
+    }
+    _pausedByVisibility = true;
+    ref
+        .read(bleScannerProvider)
+        .stop()
+        .catchError((Object e) => debugPrint('visibility stop failed: $e'));
+  }
+
+  void _onShown() {
+    if (!_pausedByVisibility) return;
+    _pausedByVisibility = false;
+    ref
+        .read(bleScannerProvider)
+        .start(_profiles[_tab])
+        .catchError((Object e) => debugPrint('visibility start failed: $e'));
   }
 
   void _selectTab(int i) {

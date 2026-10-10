@@ -1,18 +1,53 @@
+import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../domain/config.dart';
 import '../domain/hash_radar_layout.dart';
 import '../domain/interfaces.dart';
 import '../domain/kalman_rssi_smoother.dart';
+import '../domain/key_value_store.dart';
 import '../domain/log_distance_estimator.dart';
 import '../domain/manual_pairing.dart';
+import '../domain/settings.dart';
 import '../domain/types.dart';
 import 'device_state_composer.dart';
 
 part 'providers.g.dart';
 
 @Riverpod(keepAlive: true)
-ProximityConfig proximityConfig(Ref ref) => ProximityConfig();
+KeyValueStore settingsStore(Ref ref) =>
+    throw UnimplementedError('override with the app store in main()');
+
+/// The environment factor read from storage before the first frame (main()
+/// parses it with [parseEnvironmentFactor], so this is always valid).
+@Riverpod(keepAlive: true)
+double initialEnvironmentFactor(Ref ref) => defaultEnvironmentFactor;
+
+/// FR-9: user-tunable path-loss exponent `n`. Changing it rebuilds the config,
+/// which rebuilds the composer: smoothing restarts and devices show as not
+/// visible until each is heard again.
+@Riverpod(keepAlive: true)
+class EnvironmentFactor extends _$EnvironmentFactor {
+  @override
+  double build() => ref.watch(initialEnvironmentFactorProvider);
+
+  Future<void> set(double value) async {
+    state = value;
+    try {
+      await ref
+          .read(settingsStoreProvider)
+          .write(environmentFactorStorageKey, value.toString());
+    } on Object catch (error) {
+      // The new value still applies for this session; it just will not
+      // survive a restart.
+      debugPrint('EnvironmentFactor: not persisted: $error');
+    }
+  }
+}
+
+@Riverpod(keepAlive: true)
+ProximityConfig proximityConfig(Ref ref) =>
+    ProximityConfig(environmentFactor: ref.watch(environmentFactorProvider));
 
 @Riverpod(keepAlive: true)
 BleScanner bleScanner(Ref ref) =>

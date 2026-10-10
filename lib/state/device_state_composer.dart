@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
+
 import '../domain/config.dart';
 import '../domain/interfaces.dart';
 import '../domain/log_distance_estimator.dart';
@@ -31,7 +33,11 @@ class DeviceStateComposer {
     ];
   }
 
-  void _ignoreError(Object error, StackTrace stackTrace) {}
+  // Logged in debug builds only (debugPrint is a no-op in release); the
+  // composer keeps serving its last-good state either way.
+  void _ignoreError(Object error, StackTrace stackTrace) {
+    debugPrint('DeviceStateComposer: ignored source error: $error\n$stackTrace');
+  }
 
   final RssiSmoother _smoother;
   final DistanceEstimator _estimator;

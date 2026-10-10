@@ -55,4 +55,4 @@ There are no hardware integration tests by design — the gap is covered by the 
 
 ## Project tracking
 
-Work is tracked on the [BLE Tracker project board](https://github.com/users/matella/projects/1). Known v1 descopes (settings UI for the path-loss factor, Web page-visibility handling) are documented in the plan and filed as issues.
+Work is tracked on the [BLE Tracker project board](https://github.com/users/matella/projects/1). The v1 descopes (settings UI for the path-loss factor, Web page-visibility handling) have shipped: the factor is set under Devices → Settings, and Tier C scanning pauses while the browser tab is hidden. Remaining follow-ups are tracked as issues.
