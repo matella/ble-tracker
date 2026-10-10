@@ -4,11 +4,15 @@ on:
     branches: [main]
   pull_request:
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
@@ -18,3 +22,18 @@ jobs:
       - run: flutter analyze --fatal-infos
       - run: flutter test --coverage
       - run: dart run tool/coverage_gate.dart
+
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version-file: pubspec.yaml
+          cache: true
+      - run: flutter pub get
+      - run: flutter analyze --fatal-infos
+      - run: flutter test --coverage
+      - run: dart run tool/coverage_gate.dart
+      - run: flutter build windows --debug

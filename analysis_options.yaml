@@ -7,12 +7,24 @@ analyzer:
     strict-raw-types: true
   errors:
     todo: error
-  plugins:
-    - custom_lint
+  exclude:
+    - build/**
+    - android/**
+    - ios/**
+    - web/**
+    - windows/**
+    - macos/**
+    - linux/**
 
 linter:
   rules:
-    - always_declare_return_types
-    - prefer_final_locals
-    - unawaited_futures
-    - directives_ordering
+    always_declare_return_types: true
+    prefer_final_locals: true
+    unawaited_futures: true
+    directives_ordering: true
+    # Off: the suggested fix makes the named parameters private (`this._x`),
+    # which would break every call site that passes them by public name.
+    prefer_initializing_formals: false
+
+plugins:
+  riverpod_lint: ^3.1.9
