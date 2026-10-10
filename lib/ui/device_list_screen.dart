@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../domain/types.dart';
 import '../state/providers.dart';
 import 'scanner_status_banner.dart';
+import 'settings_screen.dart';
 
 class DeviceListScreen extends ConsumerWidget {
   const DeviceListScreen({super.key});
@@ -13,7 +14,19 @@ class DeviceListScreen extends ConsumerWidget {
     final states = ref.watch(deviceStatesProvider).value ?? {};
     final caps = ref.watch(platformCapabilitiesProvider);
     return Scaffold(
-      appBar: AppBar(title: const Text('Devices')),
+      appBar: AppBar(
+        title: const Text('Devices'),
+        actions: [
+          IconButton(
+            key: const Key('open-settings'),
+            tooltip: 'Settings',
+            icon: const Icon(Icons.settings),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(builder: (_) => const SettingsScreen()),
+            ),
+          ),
+        ],
+      ),
       body: Column(
         children: [
           const ScannerStatusBanner(),

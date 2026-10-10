@@ -70,5 +70,6 @@ void main() {
     expect(
         () => container.read(platformCapabilitiesProvider), throwsA(anything));
     expect(() => container.read(tickerProvider), throwsA(anything));
+    expect(() => container.read(settingsStoreProvider), throwsA(anything));
   });
 }

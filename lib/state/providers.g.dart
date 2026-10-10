@@ -9,6 +9,163 @@ part of 'providers.dart';
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
 
+@ProviderFor(settingsStore)
+final settingsStoreProvider = SettingsStoreProvider._();
+
+final class SettingsStoreProvider
+    extends $FunctionalProvider<KeyValueStore, KeyValueStore, KeyValueStore>
+    with $Provider<KeyValueStore> {
+  SettingsStoreProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'settingsStoreProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$settingsStoreHash();
+
+  @$internal
+  @override
+  $ProviderElement<KeyValueStore> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  KeyValueStore create(Ref ref) {
+    return settingsStore(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(KeyValueStore value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<KeyValueStore>(value),
+    );
+  }
+}
+
+String _$settingsStoreHash() => r'd105b27ca24004f4c005c5545c314a5910583f36';
+
+/// The environment factor read from storage before the first frame (main()
+/// parses it with [parseEnvironmentFactor], so this is always valid).
+
+@ProviderFor(initialEnvironmentFactor)
+final initialEnvironmentFactorProvider = InitialEnvironmentFactorProvider._();
+
+/// The environment factor read from storage before the first frame (main()
+/// parses it with [parseEnvironmentFactor], so this is always valid).
+
+final class InitialEnvironmentFactorProvider
+    extends $FunctionalProvider<double, double, double>
+    with $Provider<double> {
+  /// The environment factor read from storage before the first frame (main()
+  /// parses it with [parseEnvironmentFactor], so this is always valid).
+  InitialEnvironmentFactorProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'initialEnvironmentFactorProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$initialEnvironmentFactorHash();
+
+  @$internal
+  @override
+  $ProviderElement<double> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  double create(Ref ref) {
+    return initialEnvironmentFactor(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(double value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<double>(value),
+    );
+  }
+}
+
+String _$initialEnvironmentFactorHash() =>
+    r'f6c8509e3c82a3510536f3d3bd0d468cb9858dc2';
+
+/// FR-9: user-tunable path-loss exponent `n`. Changing it rebuilds the config,
+/// which rebuilds the composer: smoothing restarts and devices show as not
+/// visible until each is heard again.
+
+@ProviderFor(EnvironmentFactor)
+final environmentFactorProvider = EnvironmentFactorProvider._();
+
+/// FR-9: user-tunable path-loss exponent `n`. Changing it rebuilds the config,
+/// which rebuilds the composer: smoothing restarts and devices show as not
+/// visible until each is heard again.
+final class EnvironmentFactorProvider
+    extends $NotifierProvider<EnvironmentFactor, double> {
+  /// FR-9: user-tunable path-loss exponent `n`. Changing it rebuilds the config,
+  /// which rebuilds the composer: smoothing restarts and devices show as not
+  /// visible until each is heard again.
+  EnvironmentFactorProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'environmentFactorProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$environmentFactorHash();
+
+  @$internal
+  @override
+  EnvironmentFactor create() => EnvironmentFactor();
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(double value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<double>(value),
+    );
+  }
+}
+
+String _$environmentFactorHash() => r'1937410e50a407107ee4bbcc4fe960ffc8f73b75';
+
+/// FR-9: user-tunable path-loss exponent `n`. Changing it rebuilds the config,
+/// which rebuilds the composer: smoothing restarts and devices show as not
+/// visible until each is heard again.
+
+abstract class _$EnvironmentFactor extends $Notifier<double> {
+  double build();
+  @$mustCallSuper
+  @override
+  WhenComplete runBuild() {
+    final ref = this.ref as $Ref<double, double>;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<double, double>,
+              double,
+              Object?,
+              Object?
+            >;
+    return element.handleCreate(ref, build);
+  }
+}
+
 @ProviderFor(proximityConfig)
 final proximityConfigProvider = ProximityConfigProvider._();
 
@@ -49,7 +206,7 @@ final class ProximityConfigProvider
   }
 }
 
-String _$proximityConfigHash() => r'c723dfb13f3815e065ea51c5f07a115369f8cc39';
+String _$proximityConfigHash() => r'091d5903e2804b4688ed4043276a2a7081b00e3b';
 
 @ProviderFor(bleScanner)
 final bleScannerProvider = BleScannerProvider._();
