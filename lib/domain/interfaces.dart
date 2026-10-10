@@ -61,3 +61,12 @@ class NoopBackgroundScanHost implements BackgroundScanHost {
   @override
   Future<void> setActive(bool active) async {}
 }
+
+/// Scanners that can narrow their scan to known device IDs. Needed for
+/// Android screen-off delivery (#32): unfiltered scans deliver nothing with
+/// the screen off. Surfaced separately from [BleScanner], like ManualPairing.
+abstract interface class RemoteIdFilterable {
+  /// Empty set = unfiltered. Applies immediately while scanning (the scan is
+  /// restarted), otherwise at the next start.
+  Future<void> setRemoteIdFilter(Set<String> remoteIds);
+}

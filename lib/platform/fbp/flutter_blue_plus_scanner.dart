@@ -5,7 +5,7 @@ import '../../domain/scanner_state_machine.dart';
 import '../../domain/types.dart';
 import 'fbp_api.dart';
 
-class FlutterBluePlusScanner implements BleScanner {
+class FlutterBluePlusScanner implements BleScanner, RemoteIdFilterable {
   FlutterBluePlusScanner(this._api) {
     _adapterSub = _api.adapterOn().listen(_onAdapterChanged);
     _resultsSub = _api.scanResults().listen(_observations.add);
@@ -18,6 +18,8 @@ class FlutterBluePlusScanner implements BleScanner {
   late final StreamSubscription<bool> _adapterSub;
   late final StreamSubscription<ScanObservation> _resultsSub;
   ScanProfile _lastProfile = ScanProfile.balanced;
+  // Known device IDs to narrow the scan to (#32). Empty = unfiltered.
+  Set<String> _remoteIds = {};
   bool _disposed = false;
 
   // Serializes every state-mutating operation (start/stop/adapter
@@ -48,7 +50,10 @@ class FlutterBluePlusScanner implements BleScanner {
       await _api.stopScan();
       _apply(ScannerEvent.adapterOff);
     } else if (on && _machine.status == ScannerStatus.unavailable) {
-      await _api.startScan(lowLatency: _lastProfile == ScanProfile.lowLatency);
+      await _api.startScan(
+        lowLatency: _lastProfile == ScanProfile.lowLatency,
+        remoteIds: _remoteIds.toList(),
+      );
       _apply(ScannerEvent.adapterOn); // §5.4 auto-resume
     }
   });
@@ -78,7 +83,10 @@ class FlutterBluePlusScanner implements BleScanner {
     _lastProfile = profile;
     if (_machine.status != ScannerStatus.idle) return;
     try {
-      await _api.startScan(lowLatency: profile == ScanProfile.lowLatency);
+      await _api.startScan(
+        lowLatency: profile == ScanProfile.lowLatency,
+        remoteIds: _remoteIds.toList(),
+      );
     } on FbpPermissionDenied {
       _apply(ScannerEvent.permissionRevoked);
       return;
@@ -98,6 +106,25 @@ class FlutterBluePlusScanner implements BleScanner {
       case ScannerStatus.idle:
       case ScannerStatus.unauthorized:
         return; // no-op
+    }
+  });
+
+  /// Narrows (or un-narrows, with an empty set) the scan to [remoteIds] (#32).
+  /// The plugin applies filters only when a scan starts, so a live scan is
+  /// restarted. Applied inline: INVARIANT above forbids calling another
+  /// _enqueue-wrapped method from inside an op.
+  @override
+  Future<void> setRemoteIdFilter(Set<String> remoteIds) => _enqueue(() async {
+    _remoteIds = Set.of(remoteIds);
+    if (_machine.status != ScannerStatus.scanning) return;
+    await _api.stopScan();
+    try {
+      await _api.startScan(
+        lowLatency: _lastProfile == ScanProfile.lowLatency,
+        remoteIds: _remoteIds.toList(),
+      );
+    } on FbpPermissionDenied {
+      _apply(ScannerEvent.permissionRevoked);
     }
   });
 

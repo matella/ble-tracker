@@ -8,7 +8,7 @@ Built spec-first: see [ble-tracker-spec.md](ble-tracker-spec.md) for the full fu
 
 | Tier | Platforms | Capabilities |
 |---|---|---|
-| A (full) | Android 12+, Windows 10 21H2+, macOS 13+, Linux (BlueZ 5.60+) | Continuous scan, auto-discovery. Background: Android runs a foreground service while scanning; desktop keeps scanning when minimised. **Android screen-off scanning is not yet supported** (needs filtered scans, #32) |
+| A (full) | Android 12+, Windows 10 21H2+, macOS 13+, Linux (BlueZ 5.60+) | Continuous scan, auto-discovery. Background: Android runs a foreground service while scanning and, while backgrounded, scans only registered devices so results arrive with the screen off. **Limit:** the Android filter matches MAC addresses, so devices with rotating private addresses (most phones and many wearables) may not be seen with the screen off. Desktop keeps scanning when minimised. |
 | B (reduced background) | iOS 16+, Wear OS 4+ | Full foreground; OS-throttled background |
 | C (manual-only) | Web (Chromium only) | Manual pairing via browser chooser; RSSI polling. Safari shows an unsupported-browser message |
 

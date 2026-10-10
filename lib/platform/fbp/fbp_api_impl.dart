@@ -34,9 +34,13 @@ class FbpApiImpl implements FbpApi {
   /// conservatively on "permission" appearing in whatever text either
   /// exception carries; anything else is rethrown unchanged.
   @override
-  Future<void> startScan({required bool lowLatency}) async {
+  Future<void> startScan({
+    required bool lowLatency,
+    List<String> remoteIds = const [],
+  }) async {
     try {
       await FlutterBluePlus.startScan(
+        withRemoteIds: remoteIds,
         continuousUpdates: true,
         androidScanMode:
             lowLatency ? AndroidScanMode.lowLatency : AndroidScanMode.balanced,

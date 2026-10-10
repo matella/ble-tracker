@@ -3,16 +3,18 @@ import 'package:ble_tracker/domain/types.dart';
 import 'package:ble_tracker/platform/fake_ble_scanner.dart';
 import 'package:ble_tracker/state/providers.dart';
 import 'package:ble_tracker/ui/app.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'device_list_screen_test.dart' show RecordingRegistry, overridesWith;
+import 'device_list_screen_test.dart' show RecordingRegistry, dev, overridesWith;
 
 void main() {
   _addVisibilityTests();
   _addResumeNoticeTests();
   _addBackgroundServiceTests();
+  _addRemoteIdFilterTests();
 
   testWidgets(
       'NFR-4: radar tab starts lowLatency scan, devices tab switches to balanced',
@@ -241,6 +243,44 @@ void _addBackgroundServiceTests() {
     expect(scanner.currentStatus, ScannerStatus.scanning);
     expect(host.calls, isEmpty);
   });
+}
+
+void _addRemoteIdFilterTests() {
+  testWidgets(
+      '#32: on Android, backgrounding narrows the scan to registered devices and foregrounding clears it',
+      (tester) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.android;
+    final scanner = _FilterSpy();
+    await tester.pumpWidget(ProviderScope(
+      overrides: overridesWith(
+          registry: RecordingRegistry([dev('a')]), scanner: scanner),
+      child: const BleTrackerApp(),
+    ));
+    await tester.pump();
+    await tester.pump();
+    await tester.pump();
+
+    _hide(tester);
+    await tester.pump();
+    await tester.pump();
+    _show(tester);
+    await tester.pump();
+    await tester.pump();
+
+    // Reset before the framework's end-of-test invariant check.
+    debugDefaultTargetPlatformOverride = null;
+    expect(scanner.filters.map((s) => s.toList()), [
+      ['a'],
+      <String>[],
+    ]);
+  });
+}
+
+class _FilterSpy extends FakeBleScanner implements RemoteIdFilterable {
+  final filters = <Set<String>>[];
+  @override
+  Future<void> setRemoteIdFilter(Set<String> remoteIds) async =>
+      filters.add(remoteIds);
 }
 
 class _RecordingHost implements BackgroundScanHost {

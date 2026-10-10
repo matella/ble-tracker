@@ -1,6 +1,8 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../domain/interfaces.dart';
 import '../domain/types.dart';
 import '../state/providers.dart';
 import 'device_list_screen.dart';
@@ -52,8 +54,28 @@ class _BleTrackerAppState extends ConsumerState<BleTrackerApp> {
   bool get _isTierB =>
       ref.read(platformCapabilitiesProvider).tier == CapabilityTier.tierB;
 
+  /// #32: while backgrounded, Android scans only the registered devices, so
+  /// results keep arriving with the screen off. Foreground scans are
+  /// unfiltered (Discover needs everything).
+  void _applyBackgroundFilter({required bool background}) {
+    final scanner = ref.read(bleScannerProvider);
+    final caps = ref.read(platformCapabilitiesProvider);
+    if (scanner is! RemoteIdFilterable ||
+        !caps.supportsBackgroundScan ||
+        defaultTargetPlatform != TargetPlatform.android) {
+      return;
+    }
+    final ids = background
+        ? (ref.read(deviceStatesProvider).value?.keys.toSet() ?? <String>{})
+        : <String>{};
+    (scanner as RemoteIdFilterable)
+        .setRemoteIdFilter(ids)
+        .catchError((Object e) => debugPrint('remote-id filter: $e'));
+  }
+
   void _onHidden() {
     _hiddenSinceShown = true;
+    _applyBackgroundFilter(background: true);
     if (!_isTierC) return;
     // Only resume what this visibility change stopped: a scanner that was
     // already idle or unauthorized must not be started later by mistake.
@@ -70,6 +92,7 @@ class _BleTrackerAppState extends ConsumerState<BleTrackerApp> {
   void _onShown() {
     final wasHidden = _hiddenSinceShown;
     _hiddenSinceShown = false;
+    _applyBackgroundFilter(background: false);
     // FR-19 Tier B: the OS throttled scanning while we were away. Say so until
     // the next observation proves updates are flowing again.
     if (wasHidden && _isTierB) {

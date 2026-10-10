@@ -13,6 +13,7 @@ class FakeFbpApi implements FbpApi {
   bool permissionGranted = true;
   bool scanning = false;
   bool? lastLowLatency;
+  List<String>? lastRemoteIds;
   int startCalls = 0;
 
   @override
@@ -22,11 +23,15 @@ class FakeFbpApi implements FbpApi {
   Stream<ScanObservation> scanResults() => results.stream;
 
   @override
-  Future<void> startScan({required bool lowLatency}) async {
+  Future<void> startScan({
+    required bool lowLatency,
+    List<String> remoteIds = const [],
+  }) async {
     startCalls++;
     if (!permissionGranted) throw FbpPermissionDenied();
     scanning = true;
     lastLowLatency = lowLatency;
+    lastRemoteIds = remoteIds;
   }
 
   @override
@@ -131,6 +136,49 @@ void main() {
       scanner.start(ScanProfile.balanced),
     ]);
     expect(api.startCalls, 1);
+  });
+
+  test('#32: a filter set before start is applied to the first scan', () async {
+    final api = FakeFbpApi();
+    final scanner = FlutterBluePlusScanner(api);
+    await scanner.setRemoteIdFilter({'AA:BB'});
+    expect(api.startCalls, 0); // idle: nothing starts
+    await scanner.start(ScanProfile.balanced);
+    expect(api.lastRemoteIds, ['AA:BB']);
+  });
+
+  test('#32: changing the filter mid-scan restarts with the new IDs', () async {
+    final api = FakeFbpApi();
+    final scanner = FlutterBluePlusScanner(api);
+    await scanner.start(ScanProfile.lowLatency);
+    await scanner.setRemoteIdFilter({'CC:DD'});
+    expect(api.startCalls, 2);
+    expect(api.scanning, isTrue);
+    expect(api.lastRemoteIds, ['CC:DD']);
+    expect(api.lastLowLatency, isTrue); // keeps the current profile
+  });
+
+  test('#32: clearing the filter restores an unfiltered scan', () async {
+    final api = FakeFbpApi();
+    final scanner = FlutterBluePlusScanner(api);
+    await scanner.setRemoteIdFilter({'CC:DD'});
+    await scanner.start(ScanProfile.balanced);
+    await scanner.setRemoteIdFilter({});
+    expect(api.lastRemoteIds, isEmpty);
+    expect(api.scanning, isTrue);
+  });
+
+  test('#32: permission lost during a filter restart surfaces as unauthorized',
+      () async {
+    final api = FakeFbpApi();
+    final scanner = FlutterBluePlusScanner(api);
+    final statuses = <ScannerStatus>[];
+    scanner.status().listen(statuses.add);
+    await scanner.start(ScanProfile.balanced);
+    api.permissionGranted = false;
+    await scanner.setRemoteIdFilter({'CC:DD'});
+    await pumpEventQueue();
+    expect(statuses.last, ScannerStatus.unauthorized);
   });
 
   test('dispose during in-flight operation does not throw', () async {

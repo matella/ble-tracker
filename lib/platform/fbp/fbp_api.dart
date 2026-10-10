@@ -10,7 +10,12 @@ abstract interface class FbpApi {
   Stream<ScanObservation> scanResults();
 
   /// Throws [FbpPermissionDenied] if BLE permissions are missing/revoked.
-  Future<void> startScan({required bool lowLatency});
+  /// Non-empty [remoteIds] narrows the scan to those devices (#32); empty is
+  /// unfiltered.
+  Future<void> startScan({
+    required bool lowLatency,
+    List<String> remoteIds = const [],
+  });
 
   Future<void> stopScan();
 }
