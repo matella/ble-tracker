@@ -1,5 +1,7 @@
 # BLE Proximity Tracker v1 Implementation Plan
 
+> **Historical.** This is the plan the v1 build was executed from, and it is no longer maintained. For how the app works now, see the [README](../../../README.md) and [docs/ARCHITECTURE.md](../../ARCHITECTURE.md). Descopes listed below were resolved after v1 (see the status note near the end).
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Build the full v1 of the BLE proximity tracker per `ble-tracker-spec.md`: live radar UI, Kalman-smoothed RSSI distance estimation, device registry, and scanner adapters for all seven target platforms.
