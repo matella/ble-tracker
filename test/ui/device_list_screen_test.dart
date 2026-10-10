@@ -35,10 +35,15 @@ class RecordingRegistry implements DeviceRegistry {
       calls.add(('rename', (deviceId, name)));
   @override
   Future<void> remove(String deviceId) async => calls.add(('remove', deviceId));
+  @override
+  Future<void> setCalibration(String deviceId, double? rssiAt1m) async =>
+      calls.add(('setCalibration', (deviceId, rssiAt1m)));
 }
 
 Widget app(List<Override> overrides) => ProviderScope(
-    overrides: overrides, child: const MaterialApp(home: DeviceListScreen()));
+  overrides: overrides,
+  child: const MaterialApp(home: DeviceListScreen()),
+);
 
 List<Override> overridesWith({
   required RecordingRegistry registry,
@@ -61,8 +66,11 @@ List<Override> overridesWith({
 }
 
 RegisteredDevice dev(String id, {bool tracking = true}) => RegisteredDevice(
-    id: id, name: 'Device $id', type: DeviceType.tag,
-    trackingEnabled: tracking);
+  id: id,
+  name: 'Device $id',
+  type: DeviceType.tag,
+  trackingEnabled: tracking,
+);
 
 /// Tier C fake that also exposes [ManualPairing], mirroring how
 /// WebBluetoothScanner implements both interfaces in production.
@@ -77,16 +85,31 @@ class _PairableFakeScanner extends FakeBleScanner implements ManualPairing {
 
 void main() {
   testWidgets('renders all three visibility states', (tester) async {
-    final registry = RecordingRegistry([dev('a'), dev('b'), dev('c', tracking: false)]);
+    final registry = RecordingRegistry([
+      dev('a'),
+      dev('b'),
+      dev('c', tracking: false),
+    ]);
     final scanner = FakeBleScanner();
-    await tester.pumpWidget(app(overridesWith(registry: registry, scanner: scanner)));
+    await tester.pumpWidget(
+      app(overridesWith(registry: registry, scanner: scanner)),
+    );
     await tester.pump();
     await scanner.start(ScanProfile.balanced);
-    scanner.emit(ScanObservation(
-        deviceId: 'a', rssi: -59, txPower: -59, timestamp: DateTime.utc(2026)));
+    scanner.emit(
+      ScanObservation(
+        deviceId: 'a',
+        rssi: -59,
+        txPower: -59,
+        timestamp: DateTime.utc(2026),
+      ),
+    );
     await tester.pump();
 
-    expect(find.textContaining('1.0 m'), findsOneWidget); // a: visible + distance
+    expect(
+      find.textContaining('1.0 m'),
+      findsOneWidget,
+    ); // a: visible + distance
     expect(find.textContaining('near'), findsOneWidget); // FR-11 band shown
     expect(find.text('Not visible'), findsOneWidget); // b
     expect(find.text('Tracking off'), findsOneWidget); // c
@@ -94,51 +117,72 @@ void main() {
 
   testWidgets('toggle dispatches setTracking', (tester) async {
     final registry = RecordingRegistry([dev('a')]);
-    await tester.pumpWidget(app(
-        overridesWith(registry: registry, scanner: FakeBleScanner())));
+    await tester.pumpWidget(
+      app(overridesWith(registry: registry, scanner: FakeBleScanner())),
+    );
     await tester.pump();
     await tester.tap(find.byKey(const Key('tracking-toggle-a')));
     await tester.pump();
     expect(registry.calls, contains(('setTracking', ('a', false))));
   });
 
-  testWidgets('Tier A shows auto-discovery note, no manual pair button',
-      (tester) async {
-    await tester.pumpWidget(app(overridesWith(
-        registry: RecordingRegistry([]), scanner: FakeBleScanner())));
+  testWidgets('Tier A shows auto-discovery note, no manual pair button', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      app(
+        overridesWith(
+          registry: RecordingRegistry([]),
+          scanner: FakeBleScanner(),
+        ),
+      ),
+    );
     await tester.pump();
     expect(find.byKey(const Key('auto-discover-note')), findsOneWidget);
     expect(find.byKey(const Key('manual-pair-button')), findsNothing);
   });
 
   testWidgets('Tier C hides auto-discovery, shows manual pair', (tester) async {
-    await tester.pumpWidget(app(overridesWith(
-        registry: RecordingRegistry([]),
-        scanner: FakeBleScanner(),
-        tier: CapabilityTier.tierC)));
+    await tester.pumpWidget(
+      app(
+        overridesWith(
+          registry: RecordingRegistry([]),
+          scanner: FakeBleScanner(),
+          tier: CapabilityTier.tierC,
+        ),
+      ),
+    );
     await tester.pump();
     expect(find.byKey(const Key('auto-discover-note')), findsNothing);
     expect(find.byKey(const Key('manual-pair-button')), findsOneWidget);
   });
 
-  testWidgets('Tier C manual pair button invokes ManualPairing.pairNewDevice',
-      (tester) async {
+  testWidgets('Tier C manual pair button invokes ManualPairing.pairNewDevice', (
+    tester,
+  ) async {
     final scanner = _PairableFakeScanner();
-    await tester.pumpWidget(app(overridesWith(
-        registry: RecordingRegistry([]),
-        scanner: scanner,
-        tier: CapabilityTier.tierC)));
+    await tester.pumpWidget(
+      app(
+        overridesWith(
+          registry: RecordingRegistry([]),
+          scanner: scanner,
+          tier: CapabilityTier.tierC,
+        ),
+      ),
+    );
     await tester.pump();
     await tester.tap(find.byKey(const Key('manual-pair-button')));
     await tester.pump();
     expect(scanner.pairCalls, 1);
   });
 
-  testWidgets('status banner surfaces unavailable and unauthorized states',
-      (tester) async {
+  testWidgets('status banner surfaces unavailable and unauthorized states', (
+    tester,
+  ) async {
     final scanner = FakeBleScanner();
-    await tester.pumpWidget(app(
-        overridesWith(registry: RecordingRegistry([]), scanner: scanner)));
+    await tester.pumpWidget(
+      app(overridesWith(registry: RecordingRegistry([]), scanner: scanner)),
+    );
     await tester.pump();
     await scanner.start(ScanProfile.balanced);
     scanner.setAdapterOff();

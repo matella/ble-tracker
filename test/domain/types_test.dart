@@ -41,9 +41,19 @@ void main() {
 
     final t = DateTime.utc(2026);
     final obs = ScanObservation(
-        deviceId: 'x', rssi: -60, txPower: -59, timestamp: t, advertisedName: 'n');
+      deviceId: 'x',
+      rssi: -60,
+      txPower: -59,
+      timestamp: t,
+      advertisedName: 'n',
+    );
     final obs2 = ScanObservation(
-        deviceId: 'x', rssi: -60, txPower: -59, timestamp: t, advertisedName: 'n');
+      deviceId: 'x',
+      rssi: -60,
+      txPower: -59,
+      timestamp: t,
+      advertisedName: 'n',
+    );
     expect(obs, obs2);
     expect(obs.hashCode, obs2.hashCode);
 
@@ -53,20 +63,57 @@ void main() {
     expect(device.hashCode, device2.hashCode);
 
     final state = TrackedDeviceState(
-        device: device,
-        visibility: DeviceVisibility.visible,
-        estimate: est,
-        lastSeen: t);
+      device: device,
+      visibility: DeviceVisibility.visible,
+      estimate: est,
+      lastSeen: t,
+    );
     final state2 = TrackedDeviceState(
-        device: device2,
-        visibility: DeviceVisibility.visible,
-        estimate: est2,
-        lastSeen: t);
+      device: device2,
+      visibility: DeviceVisibility.visible,
+      estimate: est2,
+      lastSeen: t,
+    );
     expect(state, state2);
     expect(state.hashCode, state2.hashCode);
     expect(
-        state,
-        isNot(TrackedDeviceState(
-            device: device, visibility: DeviceVisibility.notVisible)));
+      state,
+      isNot(
+        TrackedDeviceState(
+          device: device,
+          visibility: DeviceVisibility.notVisible,
+        ),
+      ),
+    );
+  });
+
+  group('RegisteredDevice calibration (OQ-3)', () {
+    const base = RegisteredDevice(id: 'a', name: 'A', type: DeviceType.tag);
+
+    test('a record saved before calibration existed loads as uncalibrated', () {
+      final legacy = {
+        'id': 'a',
+        'name': 'A',
+        'type': 'tag',
+        'trackingEnabled': true,
+      };
+      expect(RegisteredDevice.fromJson(legacy).calibratedRssiAt1m, isNull);
+    });
+
+    test('calibration survives a JSON round trip', () {
+      final c = base.withCalibration(-61.5);
+      expect(RegisteredDevice.fromJson(c.toJson()), c);
+    });
+
+    test('withCalibration(null) clears the calibration', () {
+      final c = base.withCalibration(-61.5).withCalibration(null);
+      expect(c.calibratedRssiAt1m, isNull);
+    });
+
+    test('copyWith keeps the calibration', () {
+      final c = base.withCalibration(-61.5).copyWith(name: 'B');
+      expect(c.name, 'B');
+      expect(c.calibratedRssiAt1m, -61.5);
+    });
   });
 }

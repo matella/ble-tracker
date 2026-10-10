@@ -3,7 +3,8 @@ import 'types.dart';
 /// Emits raw scan observations. Implemented per platform tier.
 abstract interface class BleScanner {
   Stream<ScanObservation> observe(); // never errors; state via ScannerStatus
-  Stream<ScannerStatus> status(); // idle / scanning / unavailable / unauthorized
+  Stream<ScannerStatus>
+  status(); // idle / scanning / unavailable / unauthorized
   Future<void> start(ScanProfile profile); // profile: lowLatency | balanced
   Future<void> stop();
 }
@@ -28,6 +29,9 @@ abstract interface class DeviceRegistry {
   Future<void> setTracking(String deviceId, bool enabled);
   Future<void> rename(String deviceId, String name);
   Future<void> remove(String deviceId);
+
+  /// Sets the device's reference RSSI at 1 m, or clears it with null (OQ-3).
+  Future<void> setCalibration(String deviceId, double? rssiAt1m);
 }
 
 abstract interface class RadarLayout {

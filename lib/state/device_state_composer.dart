@@ -18,9 +18,9 @@ class DeviceStateComposer {
     required RssiSmoother smoother,
     required DistanceEstimator estimator,
     required ProximityConfig config,
-  })  : _smoother = smoother,
-        _estimator = estimator,
-        _config = config {
+  }) : _smoother = smoother,
+       _estimator = estimator,
+       _config = config {
     _subs = [
       // onError: a stream error here (e.g. a registry recovering from a
       // corrupt store, see PersistentDeviceRegistry._load) must not become
@@ -36,7 +36,9 @@ class DeviceStateComposer {
   // Logged in debug builds only (debugPrint is a no-op in release); the
   // composer keeps serving its last-good state either way.
   void _ignoreError(Object error, StackTrace stackTrace) {
-    debugPrint('DeviceStateComposer: ignored source error: $error\n$stackTrace');
+    debugPrint(
+      'DeviceStateComposer: ignored source error: $error\n$stackTrace',
+    );
   }
 
   final RssiSmoother _smoother;
@@ -92,7 +94,10 @@ class DeviceStateComposer {
     final smoothed = _smoother.next(obs.deviceId, obs.rssi, obs.timestamp);
     _estimates[obs.deviceId] = _estimator.estimate(
       smoothedRssi: smoothed,
-      txPower: resolveTxPower(obs.txPower, _config),
+      // A calibrated reference at 1 m measured for this device beats the
+      // advertised value, which varies by manufacturer and firmware.
+      txPower:
+          device.calibratedRssiAt1m ?? resolveTxPower(obs.txPower, _config),
       environmentFactor: _config.environmentFactor,
     );
     _lastSeen[obs.deviceId] = obs.timestamp;
