@@ -34,14 +34,22 @@ void runBleScannerContract(
     late ScannerHarness h;
     late List<ScannerStatus> statuses;
     late List<ScanObservation> observations;
+    late List<Object> errors;
 
     setUp(() async {
       h = await createHarness();
       statuses = [];
       observations = [];
-      h.scanner.status().listen(statuses.add);
-      h.scanner.observe().listen(observations.add);
+      errors = [];
+      // Both streams must never error (spec §5.4). Errors are collected here
+      // and asserted empty in tearDown, so every test checks it.
+      h.scanner.status().listen(statuses.add, onError: errors.add);
+      h.scanner.observe().listen(observations.add, onError: errors.add);
       await pumpEventQueue();
+    });
+
+    tearDown(() {
+      expect(errors, isEmpty, reason: 'a stream emitted an error');
     });
 
     test('start emits scanning status', () async {
@@ -96,7 +104,6 @@ void runBleScannerContract(
       h.revokePermission();
       await pumpEventQueue();
       expect(statuses.last, ScannerStatus.unauthorized);
-      // The observation stream must not have errored (listener above would throw).
     });
 
     test('start from unavailable/unauthorized is a no-op, not an error',

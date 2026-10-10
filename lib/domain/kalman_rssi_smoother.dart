@@ -12,12 +12,27 @@ class KalmanRssiSmoother implements RssiSmoother {
   KalmanRssiSmoother({
     required this.processNoise,
     required this.measurementNoise,
-  });
+  }) {
+    // Zero or negative variances make the gain degenerate (division by a
+    // non-positive sum) and silently produce NaN estimates.
+    if (processNoise <= 0) {
+      throw ArgumentError.value(processNoise, 'processNoise', 'must be > 0');
+    }
+    if (measurementNoise <= 0) {
+      throw ArgumentError.value(
+          measurementNoise, 'measurementNoise', 'must be > 0');
+    }
+  }
 
   final double processNoise;
   final double measurementNoise;
   final Map<String, _KalmanState> _states = {};
 
+  /// [at] is part of the [RssiSmoother] contract but unused here: process
+  /// noise is applied per observation, not per second. Scaling it by the
+  /// elapsed time was considered and not adopted, because the default
+  /// [processNoise] was tuned per observation and would silently change
+  /// every estimate.
   @override
   double next(String deviceId, double rawRssi, DateTime at) {
     final state = _states[deviceId];

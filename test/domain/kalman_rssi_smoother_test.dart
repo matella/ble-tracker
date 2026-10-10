@@ -84,4 +84,22 @@ void main() {
     // Heavy smoothing trusts the new measurement less → stays closer to -50.
     expect(heavyOut, greaterThan(lightOut));
   });
+
+  test('rejects non-positive process noise', () {
+    expect(
+      () => KalmanRssiSmoother(processNoise: 0, measurementNoise: 1.4),
+      throwsArgumentError,
+    );
+    expect(
+      () => KalmanRssiSmoother(processNoise: -0.1, measurementNoise: 1.4),
+      throwsArgumentError,
+    );
+  });
+
+  test('rejects non-positive measurement noise', () {
+    expect(
+      () => KalmanRssiSmoother(processNoise: 0.065, measurementNoise: 0),
+      throwsArgumentError,
+    );
+  });
 }
