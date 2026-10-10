@@ -11,7 +11,8 @@ void main() {
 
   for (final line in lcov) {
     if (line.startsWith('SF:')) {
-      currentFile = line.substring(3);
+      // lcov uses the host separator, so Windows emits `lib\domain\x.dart`.
+      currentFile = line.substring(3).replaceAll(r'\', '/');
       relevant = (currentFile.contains('lib/domain/') ||
               currentFile.contains('lib/state/')) &&
           !currentFile.endsWith('.g.dart');
