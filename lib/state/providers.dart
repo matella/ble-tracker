@@ -45,6 +45,12 @@ class EnvironmentFactor extends _$EnvironmentFactor {
   }
 }
 
+/// FR-19 Tier A: keeps scanning alive in the background. Overridden in main()
+/// with the Android foreground service on Android; a no-op everywhere else.
+@Riverpod(keepAlive: true)
+BackgroundScanHost backgroundScanHost(Ref ref) =>
+    const NoopBackgroundScanHost();
+
 /// FR-19 Tier B: true from the moment the app returns from the background
 /// until the next scan observation confirms updates are flowing again.
 @Riverpod(keepAlive: true)

@@ -6,6 +6,7 @@ import 'domain/interfaces.dart';
 import 'domain/key_value_store.dart';
 import 'domain/persistent_device_registry.dart';
 import 'domain/settings.dart';
+import 'platform/android/background_scan_host.dart';
 import 'platform/default_platform_capabilities.dart';
 import 'platform/scanner_factory_io.dart'
     if (dart.library.js_interop) 'platform/scanner_factory_web.dart';
@@ -56,6 +57,13 @@ Future<void> main() async {
       deviceRegistryProvider.overrideWithValue(PersistentDeviceRegistry(store)),
       platformCapabilitiesProvider.overrideWithValue(caps),
       tickerProvider.overrideWithValue(ticks),
+      // Tier A Android only. Web is Tier C and Wear is Tier B, so both fall
+      // through to the no-op.
+      backgroundScanHostProvider.overrideWithValue(
+        caps.supportsBackgroundScan && defaultTargetPlatform == TargetPlatform.android
+            ? AndroidBackgroundScanHost()
+            : const NoopBackgroundScanHost(),
+      ),
       settingsStoreProvider.overrideWithValue(store),
       initialEnvironmentFactorProvider.overrideWithValue(environmentFactor),
     ],

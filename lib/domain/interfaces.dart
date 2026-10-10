@@ -47,3 +47,17 @@ abstract interface class PlatformCapabilities {
   bool get supportsAutoDiscovery;
   bool get supportsBackgroundScan;
 }
+
+/// Keeps scanning alive while the app is in the background (FR-19, Tier A).
+/// Only Android has a real implementation (a foreground service); elsewhere
+/// the no-op applies, because desktop keeps scanning when minimised.
+abstract interface class BackgroundScanHost {
+  Future<void> setActive(bool active);
+}
+
+class NoopBackgroundScanHost implements BackgroundScanHost {
+  const NoopBackgroundScanHost();
+
+  @override
+  Future<void> setActive(bool active) async {}
+}

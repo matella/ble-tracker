@@ -106,6 +106,18 @@ class _BleTrackerAppState extends ConsumerState<BleTrackerApp> {
     ref.listen(discoveryObservationsProvider, (_, next) {
       if (next.hasValue) ref.read(resumeNoticeProvider.notifier).clear();
     });
+    // FR-19 Tier A: the background service runs only while scanning, and only
+    // on tiers that declare background scanning (Wear and web never do).
+    ref.listen(scannerStatusProvider, (_, next) {
+      if (!ref.read(platformCapabilitiesProvider).supportsBackgroundScan) {
+        return;
+      }
+      final scanning = next.value == ScannerStatus.scanning;
+      ref
+          .read(backgroundScanHostProvider)
+          .setActive(scanning)
+          .catchError((Object e) => debugPrint('background scan: $e'));
+    });
     return MaterialApp(
       title: 'BLE Tracker',
       theme: ThemeData.dark(),

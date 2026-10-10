@@ -1,3 +1,4 @@
+import 'package:ble_tracker/domain/interfaces.dart';
 import 'package:ble_tracker/domain/types.dart';
 import 'package:ble_tracker/platform/fake_ble_scanner.dart';
 import 'package:ble_tracker/state/providers.dart';
@@ -11,6 +12,7 @@ import 'device_list_screen_test.dart' show RecordingRegistry, overridesWith;
 void main() {
   _addVisibilityTests();
   _addResumeNoticeTests();
+  _addBackgroundServiceTests();
 
   testWidgets(
       'NFR-4: radar tab starts lowLatency scan, devices tab switches to balanced',
@@ -196,6 +198,55 @@ void _addResumeNoticeTests() {
     await tester.pump();
     expect(find.textContaining('paused in the background'), findsNothing);
   });
+}
+
+void _addBackgroundServiceTests() {
+  testWidgets('FR-19 Tier A: the background host follows the scan (on, then off)',
+      (tester) async {
+    final scanner = FakeBleScanner();
+    final host = _RecordingHost();
+    await tester.pumpWidget(ProviderScope(
+      overrides: [
+        ...overridesWith(registry: RecordingRegistry([]), scanner: scanner),
+        backgroundScanHostProvider.overrideWithValue(host),
+      ],
+      child: const BleTrackerApp(),
+    ));
+    await tester.pump();
+    await tester.pump();
+    expect(host.calls, [true]);
+
+    await scanner.stop();
+    await tester.pump();
+    await tester.pump();
+    expect(host.calls, [true, false]);
+  });
+
+  testWidgets('FR-19 Tier B: the background host is never started',
+      (tester) async {
+    final scanner = FakeBleScanner();
+    final host = _RecordingHost();
+    await tester.pumpWidget(ProviderScope(
+      overrides: [
+        ...overridesWith(
+            registry: RecordingRegistry([]),
+            scanner: scanner,
+            tier: CapabilityTier.tierB),
+        backgroundScanHostProvider.overrideWithValue(host),
+      ],
+      child: const BleTrackerApp(),
+    ));
+    await tester.pump();
+    await tester.pump();
+    expect(scanner.currentStatus, ScannerStatus.scanning);
+    expect(host.calls, isEmpty);
+  });
+}
+
+class _RecordingHost implements BackgroundScanHost {
+  final calls = <bool>[];
+  @override
+  Future<void> setActive(bool active) async => calls.add(active);
 }
 
 class _ProfileSpy {
