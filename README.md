@@ -49,7 +49,7 @@ flutter test --coverage
 dart run tool/coverage_gate.dart   # fails below 100% on lib/domain/ + lib/state/
 ```
 
-CI runs all three on Ubuntu and on Windows (plus `flutter build windows`) on every push to `main` and every pull request. Golden tests live under [test/ui/goldens/](test/ui/goldens/); regenerate with `flutter test --update-goldens test/ui/radar_golden_test.dart`.
+CI runs all three on Ubuntu and on Windows (plus `flutter build windows`) on every push to `main` and every pull request. Ubuntu also runs the radar hash parity test under Chrome (dart2js), and an Android job builds the debug APK for the phone and Wear OS variants (compile-only). Golden tests live under [test/ui/goldens/](test/ui/goldens/); regenerate with `flutter test --update-goldens test/ui/radar_golden_test.dart`.
 
 There are no hardware integration tests by design — the gap is covered by the contract suites plus the per-release [manual test checklist](docs/manual-test-checklist.md).
 
