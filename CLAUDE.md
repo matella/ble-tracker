@@ -4,11 +4,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Commands
 
-`flutter` is not on PATH in non-interactive shells on this machine:
+`flutter` is not on PATH in non-interactive shells on this machine (SDK lives in `Desktop/Coding/SDK/flutter`):
 
 ```bash
-export PATH="$HOME/Coding/SDK/flutter/bin:$PATH"
+export PATH="$HOME/Desktop/Coding/SDK/flutter/bin:$PATH"
 ```
+
+Windows desktop builds (`flutter run -d windows`, `flutter build windows`) need Developer Mode on (`start ms-settings:developers`) because plugins are linked with symlinks.
 
 ```bash
 flutter analyze --fatal-infos          # strict lints; must be zero issues
@@ -43,9 +45,9 @@ Key invariants that hold everywhere and must survive changes:
 - **Every adapter must pass the shared contract suite**: call `runBleScannerContract(...)` from `test/contract/ble_scanner_contract.dart` with a `ScannerHarness`. If you add or change adapter behavior, pin it in the contract suite so all five implementations (including `FakeBleScanner`, the reference used by widget tests) stay in lockstep — divergence between the fake and real adapters has caused real bugs here.
 - **Plugin API surfaces are isolated** behind thin `*Api` interfaces (`FbpApi`, `BlueZApi`, `WebBluetoothApi`); the `*ApiImpl` classes are deliberately untested (no hardware in CI) — the manual checklist (`docs/manual-test-checklist.md`) covers them per release. Keep them thin.
 
-## Riverpod specifics (pinned versions)
+## Riverpod specifics
 
-The riverpod family is pinned to an exact set compatible with Dart 3.11 (`flutter_riverpod 3.1.0`, `riverpod_annotation 4.0.0`, `riverpod_generator 4.0.0+1`) — do not bump casually. Conventions forced by these versions:
+The riverpod family is on current releases (`flutter_riverpod ^3.4.3`, `riverpod_annotation ^4.0.7`, `riverpod_generator ^4.0.9`, `riverpod_lint ^3.1.9`). Lints run through the analysis-server plugin declared at the top level of `analysis_options.yaml` (`plugins: riverpod_lint`); `custom_lint` is no longer used because it conflicts with `riverpod_lint` 3.1.x. Conventions in this codebase:
 
 - `.value` (not `.valueOrNull`) on AsyncValue.
 - `Override` imports from `package:flutter_riverpod/misc.dart`.
