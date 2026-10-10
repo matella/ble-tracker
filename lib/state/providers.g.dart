@@ -166,6 +166,62 @@ abstract class _$EnvironmentFactor extends $Notifier<double> {
   }
 }
 
+/// FR-19 Tier A: keeps scanning alive in the background. Overridden in main()
+/// with the Android foreground service on Android; a no-op everywhere else.
+
+@ProviderFor(backgroundScanHost)
+final backgroundScanHostProvider = BackgroundScanHostProvider._();
+
+/// FR-19 Tier A: keeps scanning alive in the background. Overridden in main()
+/// with the Android foreground service on Android; a no-op everywhere else.
+
+final class BackgroundScanHostProvider
+    extends
+        $FunctionalProvider<
+          BackgroundScanHost,
+          BackgroundScanHost,
+          BackgroundScanHost
+        >
+    with $Provider<BackgroundScanHost> {
+  /// FR-19 Tier A: keeps scanning alive in the background. Overridden in main()
+  /// with the Android foreground service on Android; a no-op everywhere else.
+  BackgroundScanHostProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'backgroundScanHostProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$backgroundScanHostHash();
+
+  @$internal
+  @override
+  $ProviderElement<BackgroundScanHost> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  BackgroundScanHost create(Ref ref) {
+    return backgroundScanHost(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(BackgroundScanHost value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<BackgroundScanHost>(value),
+    );
+  }
+}
+
+String _$backgroundScanHostHash() =>
+    r'57394040e65b7aab3c562c4def4e6c1869c1ddbd';
+
 /// FR-19 Tier B: true from the moment the app returns from the background
 /// until the next scan observation confirms updates are flowing again.
 
