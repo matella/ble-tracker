@@ -47,7 +47,9 @@ class PersistentDeviceRegistry implements DeviceRegistry {
 
   Future<void> _save(Map<String, RegisteredDevice> devices) async {
     await _store.write(
-        storageKey, jsonEncode(devices.values.map((d) => d.toJson()).toList()));
+      storageKey,
+      jsonEncode(devices.values.map((d) => d.toJson()).toList()),
+    );
     _cache = devices;
     _controller.add(devices.values.toList());
   }
@@ -90,10 +92,10 @@ class PersistentDeviceRegistry implements DeviceRegistry {
 
   @override
   Future<void> register(RegisteredDevice device) => _serialize(() async {
-        final devices = Map.of(await _load());
-        devices[device.id] = device;
-        await _save(devices);
-      });
+    final devices = Map.of(await _load());
+    devices[device.id] = device;
+    await _save(devices);
+  });
 
   Future<RegisteredDevice> _require(String deviceId) async {
     final device = (await _load())[deviceId];
@@ -114,16 +116,25 @@ class PersistentDeviceRegistry implements DeviceRegistry {
 
   @override
   Future<void> rename(String deviceId, String name) => _serialize(() async {
+    final device = await _require(deviceId);
+    final devices = Map.of(_cache!);
+    devices[deviceId] = device.copyWith(name: name);
+    await _save(devices);
+  });
+
+  @override
+  Future<void> setCalibration(String deviceId, double? rssiAt1m) =>
+      _serialize(() async {
         final device = await _require(deviceId);
         final devices = Map.of(_cache!);
-        devices[deviceId] = device.copyWith(name: name);
+        devices[deviceId] = device.withCalibration(rssiAt1m);
         await _save(devices);
       });
 
   @override
   Future<void> remove(String deviceId) => _serialize(() async {
-        await _require(deviceId);
-        final devices = Map.of(_cache!)..remove(deviceId);
-        await _save(devices);
-      });
+    await _require(deviceId);
+    final devices = Map.of(_cache!)..remove(deviceId);
+    await _save(devices);
+  });
 }

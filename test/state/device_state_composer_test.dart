@@ -9,7 +9,11 @@ import 'package:ble_tracker/state/device_state_composer.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 RegisteredDevice dev(String id, {bool tracking = true}) => RegisteredDevice(
-    id: id, name: id, type: DeviceType.tag, trackingEnabled: tracking);
+  id: id,
+  name: id,
+  type: DeviceType.tag,
+  trackingEnabled: tracking,
+);
 
 void main() {
   late StreamController<List<RegisteredDevice>> registry;
@@ -29,8 +33,9 @@ void main() {
       observations: observations.stream,
       ticks: ticks.stream,
       smoother: KalmanRssiSmoother(
-          processNoise: config.processNoise,
-          measurementNoise: config.measurementNoise),
+        processNoise: config.processNoise,
+        measurementNoise: config.measurementNoise,
+      ),
       estimator: LogDistanceEstimator(config),
       config: config,
     );
@@ -110,16 +115,18 @@ void main() {
     expect(emitted.last['a']!.visibility, DeviceVisibility.visible);
   });
 
-  test('toggled-off device shows trackingOff and observations are ignored',
-      () async {
-    registry.add([dev('a', tracking: false)]);
-    await pump();
-    expect(emitted.last['a']!.visibility, DeviceVisibility.trackingOff);
-    observations.add(obs('a', t0));
-    await pump();
-    expect(emitted.last['a']!.visibility, DeviceVisibility.trackingOff);
-    expect(emitted.last['a']!.estimate, isNull);
-  });
+  test(
+    'toggled-off device shows trackingOff and observations are ignored',
+    () async {
+      registry.add([dev('a', tracking: false)]);
+      await pump();
+      expect(emitted.last['a']!.visibility, DeviceVisibility.trackingOff);
+      observations.add(obs('a', t0));
+      await pump();
+      expect(emitted.last['a']!.visibility, DeviceVisibility.trackingOff);
+      expect(emitted.last['a']!.estimate, isNull);
+    },
+  );
 
   test('toggling off resets smoother state (fresh on re-enable)', () async {
     final resetIds = <String>[];
@@ -171,21 +178,44 @@ void main() {
     expect(emitted.last['a']!.visibility, DeviceVisibility.visible);
   });
 
-  test('stale device is not resurrected by an unrelated registry emission',
-      () async {
-    registry.add([dev('a'), dev('b')]);
-    await pump();
-    observations.add(obs('a', t0));
-    await pump();
-    ticks.add(t0.add(const Duration(seconds: 10)));
-    await pump();
-    expect(emitted.last['a']!.visibility, DeviceVisibility.notVisible);
+  test(
+    'stale device is not resurrected by an unrelated registry emission',
+    () async {
+      registry.add([dev('a'), dev('b')]);
+      await pump();
+      observations.add(obs('a', t0));
+      await pump();
+      ticks.add(t0.add(const Duration(seconds: 10)));
+      await pump();
+      expect(emitted.last['a']!.visibility, DeviceVisibility.notVisible);
 
-    registry.add([dev('a'), dev('b'), dev('c')]); // unrelated change
-    await pump();
-    expect(emitted.last['a']!.visibility, DeviceVisibility.notVisible);
-    expect(emitted.last['a']!.estimate, isNull);
-  });
+      registry.add([dev('a'), dev('b'), dev('c')]); // unrelated change
+      await pump();
+      expect(emitted.last['a']!.visibility, DeviceVisibility.notVisible);
+      expect(emitted.last['a']!.estimate, isNull);
+    },
+  );
+
+  test(
+    'a calibrated reference at 1 m replaces the advertised TxPower',
+    () async {
+      // Advertised TxPower -59 puts a -59 dBm reading at exactly 1.0 m. A
+      // calibrated reference of -50 dBm at 1 m puts the same reading farther
+      // away: 10^((-50 - -59) / (10 * 2.7)) ≈ 2.15 m.
+      registry.add([
+        const RegisteredDevice(
+          id: 'a',
+          name: 'a',
+          type: DeviceType.tag,
+          calibratedRssiAt1m: -50,
+        ),
+      ]);
+      await pump();
+      observations.add(obs('a', t0));
+      await pump();
+      expect(emitted.last['a']!.estimate!.meters, closeTo(2.15, 0.01));
+    },
+  );
 }
 
 class _SpySmoother implements RssiSmoother {

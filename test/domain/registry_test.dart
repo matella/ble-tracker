@@ -51,7 +51,11 @@ class _ThrowingReadStore implements KeyValueStore {
 }
 
 RegisteredDevice dev(String id, {bool tracking = true}) => RegisteredDevice(
-    id: id, name: 'name-$id', type: DeviceType.tag, trackingEnabled: tracking);
+  id: id,
+  name: 'name-$id',
+  type: DeviceType.tag,
+  trackingEnabled: tracking,
+);
 
 void main() {
   late FakeStore store;
@@ -114,7 +118,9 @@ void main() {
     }
     expect((await registry.watchAll().first).length, 1000);
     expect(
-        (await PersistentDeviceRegistry(store).watchAll().first).length, 1000);
+      (await PersistentDeviceRegistry(store).watchAll().first).length,
+      1000,
+    );
   });
 
   test('synchronous listen+cancel does not throw', () async {
@@ -177,49 +183,89 @@ void main() {
     await r.register(dev('a'));
     expect(await r.watchAll().first, [dev('a')]);
     // The next successful save overwrote the corrupt raw string.
-    expect(await PersistentDeviceRegistry(corrupt).watchAll().first, [dev('a')]);
+    expect(await PersistentDeviceRegistry(corrupt).watchAll().first, [
+      dev('a'),
+    ]);
   });
 
-  test('watchAll surfaces an error from the initial load to subscribers',
-      () async {
-    final r = PersistentDeviceRegistry(_ThrowingReadStore());
-    final errors = <Object>[];
-    final sub = r.watchAll().listen((_) {}, onError: errors.add);
-    await pumpEventQueue();
-    expect(errors.single, isA<StateError>());
-    await sub.cancel();
+  test(
+    'watchAll surfaces an error from the initial load to subscribers',
+    () async {
+      final r = PersistentDeviceRegistry(_ThrowingReadStore());
+      final errors = <Object>[];
+      final sub = r.watchAll().listen((_) {}, onError: errors.add);
+      await pumpEventQueue();
+      expect(errors.single, isA<StateError>());
+      await sub.cancel();
+    },
+  );
+
+  test(
+    'overlapping mutations do not lose each other (no lost update)',
+    () async {
+      final gated = _GatedWriteStore();
+      final r = PersistentDeviceRegistry(gated);
+      final first = r.register(dev('a'));
+      final second = r.register(dev('b'));
+      await pumpEventQueue();
+      // The first write is still blocked; the second mutation must wait for it
+      // rather than start from the same snapshot.
+      expect(gated.writes, 1);
+
+      gated.release();
+      await Future.wait([first, second]);
+      final list = await r.watchAll().first;
+      expect(list.map((d) => d.id), unorderedEquals(['a', 'b']));
+    },
+  );
+
+  test(
+    'a failing mutation rejects its caller but not the ones queued behind',
+    () async {
+      final gated = _GatedWriteStore(failFirst: true);
+      final r = PersistentDeviceRegistry(gated);
+      final failing = r.register(dev('a'));
+      final next = r.register(dev('b'));
+      final failure = expectLater(failing, throwsStateError);
+      gated.release();
+      await failure;
+      await next;
+      final list = await r.watchAll().first;
+      expect(list.map((d) => d.id), ['b']);
+    },
+  );
+  test(
+    'setCalibration persists the reference and clearing removes it',
+    () async {
+      await registry.register(dev('a'));
+      await registry.setCalibration('a', -58);
+      expect((await registry.watchAll().first).single.calibratedRssiAt1m, -58);
+
+      await registry.setCalibration('a', null);
+      expect(
+        (await registry.watchAll().first).single.calibratedRssiAt1m,
+        isNull,
+      );
+    },
+  );
+
+  test('setCalibration on an unregistered device throws', () async {
+    await expectLater(
+      registry.setCalibration('missing', -58),
+      throwsArgumentError,
+    );
   });
 
-  test('overlapping mutations do not lose each other (no lost update)',
-      () async {
-    final gated = _GatedWriteStore();
-    final r = PersistentDeviceRegistry(gated);
-    final first = r.register(dev('a'));
-    final second = r.register(dev('b'));
-    await pumpEventQueue();
-    // The first write is still blocked; the second mutation must wait for it
-    // rather than start from the same snapshot.
-    expect(gated.writes, 1);
-
-    gated.release();
-    await Future.wait([first, second]);
-    final list = await r.watchAll().first;
-    expect(list.map((d) => d.id), unorderedEquals(['a', 'b']));
-  });
-
-  test('a failing mutation rejects its caller but not the ones queued behind',
-      () async {
-    final gated = _GatedWriteStore(failFirst: true);
-    final r = PersistentDeviceRegistry(gated);
-    final failing = r.register(dev('a'));
-    final next = r.register(dev('b'));
-    final failure = expectLater(failing, throwsStateError);
-    gated.release();
-    await failure;
-    await next;
-    final list = await r.watchAll().first;
-    expect(list.map((d) => d.id), ['b']);
-  });
+  test(
+    'a store written before calibration existed loads without error',
+    () async {
+      store.data[PersistentDeviceRegistry.storageKey] =
+          '[{"id":"a","name":"A","type":"tag","trackingEnabled":true}]';
+      final list = await PersistentDeviceRegistry(store).watchAll().first;
+      expect(list.single.id, 'a');
+      expect(list.single.calibratedRssiAt1m, isNull);
+    },
+  );
 }
 
 /// Write blocks until [release] is called; the first write can be made to fail.
