@@ -8,7 +8,7 @@ Built spec-first: see [ble-tracker-spec.md](ble-tracker-spec.md) for the full fu
 
 | Tier | Platforms | Capabilities |
 |---|---|---|
-| A (full) | Android 12+, Windows 10 21H2+, macOS 13+, Linux (BlueZ 5.60+) | Continuous scan, auto-discovery, background |
+| A (full) | Android 12+, Windows 10 21H2+, macOS 13+, Linux (BlueZ 5.60+) | Continuous scan, auto-discovery. Background scanning is **not yet implemented** (the capability flag exists; no platform background service is wired) |
 | B (reduced background) | iOS 16+, Wear OS 4+ | Full foreground; OS-throttled background |
 | C (manual-only) | Web (Chromium only) | Manual pairing via browser chooser; RSSI polling. Safari shows an unsupported-browser message |
 
@@ -31,7 +31,7 @@ All four scanner adapters pass a shared contract test suite (harness in [test/co
 
 ## Development
 
-Requires Flutter 3.41.2 (pinned in `pubspec.yaml` — the pin doubles as the golden-test renderer pin).
+Requires Flutter 3.47.7 (pinned in `pubspec.yaml` — the pin doubles as the golden-test renderer pin). Windows desktop builds need Developer Mode enabled (plugin symlinks).
 
 ```bash
 flutter pub get
@@ -49,7 +49,7 @@ flutter test --coverage
 dart run tool/coverage_gate.dart   # fails below 100% on lib/domain/ + lib/state/
 ```
 
-CI runs all three on every push to `main` and every pull request. Golden tests live under [test/ui/goldens/](test/ui/goldens/); regenerate with `flutter test --update-goldens test/ui/radar_golden_test.dart`.
+CI runs all three on Ubuntu and on Windows (plus `flutter build windows`) on every push to `main` and every pull request. Golden tests live under [test/ui/goldens/](test/ui/goldens/); regenerate with `flutter test --update-goldens test/ui/radar_golden_test.dart`.
 
 There are no hardware integration tests by design — the gap is covered by the contract suites plus the per-release [manual test checklist](docs/manual-test-checklist.md).
 
