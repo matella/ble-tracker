@@ -329,3 +329,4 @@ For each module, in order:
 - **OQ-1:** Persistence backend for `DeviceRegistry` — `shared_preferences` (simple, sufficient for a registry) vs `drift` (if history lands later). Proposal: shared_preferences now, interface makes swapping trivial.
 - **OQ-2:** Linux BLE — `bluez` Dart package vs FFI to BlueZ D-Bus. Needs a spike.
 - **OQ-3:** Should environment factor `n` (§FR-9) be per-device rather than global? Per-device calibration ("stand 1 m away and tap calibrate") would meaningfully improve NFR-1.
+  - **Resolved (#27):** `n` stays global. A single reading at 1 m cannot determine `n` (the log term is zero there), so calibration stores each device's **reference RSSI at 1 m**, which replaces its advertised or default TxPower in FR-9. Calibration averages readings over a 5 s window (minimum 10 readings) and refuses readings outside −100…−20 dBm.

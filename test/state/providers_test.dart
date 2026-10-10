@@ -18,6 +18,8 @@ class _FakeRegistry implements DeviceRegistry {
   Future<void> rename(String deviceId, String name) async {}
   @override
   Future<void> remove(String deviceId) async {}
+  @override
+  Future<void> setCalibration(String deviceId, double? rssiAt1m) async {}
 }
 
 class _FakeScanner implements BleScanner {
@@ -38,11 +40,13 @@ void main() {
     final scanner = _FakeScanner();
     final ticks = StreamController<DateTime>.broadcast();
 
-    final container = ProviderContainer(overrides: [
-      deviceRegistryProvider.overrideWithValue(registry),
-      bleScannerProvider.overrideWithValue(scanner),
-      tickerProvider.overrideWithValue(ticks.stream),
-    ]);
+    final container = ProviderContainer(
+      overrides: [
+        deviceRegistryProvider.overrideWithValue(registry),
+        bleScannerProvider.overrideWithValue(scanner),
+        tickerProvider.overrideWithValue(ticks.stream),
+      ],
+    );
     addTearDown(container.dispose);
 
     final states = <Map<String, TrackedDeviceState>>[];
@@ -55,8 +59,14 @@ void main() {
       const RegisteredDevice(id: 'a', name: 'a', type: DeviceType.tag),
     ]);
     await pumpEventQueue();
-    scanner.observations.add(ScanObservation(
-        deviceId: 'a', rssi: -59, txPower: -59, timestamp: DateTime.utc(2026)));
+    scanner.observations.add(
+      ScanObservation(
+        deviceId: 'a',
+        rssi: -59,
+        txPower: -59,
+        timestamp: DateTime.utc(2026),
+      ),
+    );
     await pumpEventQueue();
 
     expect(states.last['a']!.visibility, DeviceVisibility.visible);
@@ -68,7 +78,9 @@ void main() {
     expect(() => container.read(bleScannerProvider), throwsA(anything));
     expect(() => container.read(deviceRegistryProvider), throwsA(anything));
     expect(
-        () => container.read(platformCapabilitiesProvider), throwsA(anything));
+      () => container.read(platformCapabilitiesProvider),
+      throwsA(anything),
+    );
     expect(() => container.read(tickerProvider), throwsA(anything));
     expect(() => container.read(settingsStoreProvider), throwsA(anything));
   });
