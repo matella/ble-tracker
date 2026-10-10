@@ -2,12 +2,15 @@ import 'package:ble_tracker/domain/types.dart';
 import 'package:ble_tracker/platform/fake_ble_scanner.dart';
 import 'package:ble_tracker/state/providers.dart';
 import 'package:ble_tracker/ui/app.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'device_list_screen_test.dart' show RecordingRegistry, overridesWith;
 
 void main() {
+  _addVisibilityTests();
+
   testWidgets(
       'NFR-4: radar tab starts lowLatency scan, devices tab switches to balanced',
       (tester) async {
@@ -64,6 +67,86 @@ void main() {
     expect(scanner.startedProfiles, [ScanProfile.lowLatency]); // unchanged
     expect(container.read(scannerStatusProvider).value,
         ScannerStatus.unavailable); // banner state preserved
+  });
+}
+
+// The framework asserts valid transitions (resumed → inactive → hidden and
+// back), so the helpers step through `inactive` like the platform does.
+void _hide(WidgetTester tester) {
+  tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+  tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+}
+
+void _show(WidgetTester tester) {
+  tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+  tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+}
+
+void _addVisibilityTests() {
+  testWidgets('FR-19 Tier C: hiding the tab stops the scan, showing resumes it',
+      (tester) async {
+    final scanner = FakeBleScanner();
+    await tester.pumpWidget(ProviderScope(
+      overrides: overridesWith(
+          registry: RecordingRegistry([]),
+          scanner: scanner,
+          tier: CapabilityTier.tierC),
+      child: const BleTrackerApp(),
+    ));
+    await tester.pump();
+    await tester.pump();
+    expect(scanner.currentStatus, ScannerStatus.scanning);
+
+    _hide(tester);
+    await tester.pump();
+    await tester.pump();
+    expect(scanner.currentStatus, ScannerStatus.idle);
+
+    _show(tester);
+    await tester.pump();
+    await tester.pump();
+    expect(scanner.currentStatus, ScannerStatus.scanning);
+    expect(scanner.startedProfiles.last, ScanProfile.lowLatency); // radar tab
+  });
+
+  testWidgets('tab visibility change does not pause a Tier A scan',
+      (tester) async {
+    final scanner = FakeBleScanner();
+    await tester.pumpWidget(ProviderScope(
+      overrides: overridesWith(
+          registry: RecordingRegistry([]), scanner: scanner),
+      child: const BleTrackerApp(),
+    ));
+    await tester.pump();
+    await tester.pump();
+
+    _hide(tester);
+    await tester.pump();
+    await tester.pump();
+    expect(scanner.currentStatus, ScannerStatus.scanning);
+  });
+
+  testWidgets('Tier C: showing the tab does not start a scan that was not running',
+      (tester) async {
+    final scanner = FakeBleScanner();
+    await tester.pumpWidget(ProviderScope(
+      overrides: overridesWith(
+          registry: RecordingRegistry([]),
+          scanner: scanner,
+          tier: CapabilityTier.tierC),
+      child: const BleTrackerApp(),
+    ));
+    await tester.pump();
+    await tester.pump();
+    scanner.setAdapterOff();
+    await tester.pump();
+    await tester.pump();
+
+    _hide(tester);
+    _show(tester);
+    await tester.pump();
+    await tester.pump();
+    expect(scanner.startedProfiles, [ScanProfile.lowLatency]); // not restarted
   });
 }
 

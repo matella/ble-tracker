@@ -20,6 +20,17 @@ void main() {
       }
     });
 
+    test('pinned values: identical on the VM and dart2js (web)', () {
+      // Computed once on the Dart VM. The 32-bit hash keeps every intermediate
+      // exact in a JS double, so these must hold under `flutter test --platform
+      // chrome` too. A change here means the layout moved for every user.
+      expect(layout.angleFor('device-0'), closeTo(1.032202505320, 1e-9));
+      expect(layout.angleFor('device-1'), closeTo(0.716450527109, 1e-9));
+      expect(layout.angleFor('AA:BB:CC:DD:EE:FF'), closeTo(3.384992666646, 1e-9));
+      expect(layout.angleFor('buds'), closeTo(2.198760586153, 1e-9));
+      expect(layout.angleFor(''), closeTo(4.202962066172, 1e-9));
+    });
+
     test('range is [0, 2π)', () {
       for (var i = 0; i < 100; i++) {
         final a = layout.angleFor('device-$i');
