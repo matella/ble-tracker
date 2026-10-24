@@ -40,7 +40,7 @@ dependencies:
   flutter_blue_plus: ^2.3.11
   shared_preferences: ^2.5.5
   bluez: ^0.8.3
-  flutter_web_bluetooth: ^1.1.0
+  flutter_web_bluetooth: ^1.2.0
   collection: ^1.19.1
   async: ^2.13.1
 
