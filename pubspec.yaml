@@ -37,7 +37,7 @@ dependencies:
   cupertino_icons: ^2.0.0
   flutter_riverpod: ^3.4.3
   riverpod_annotation: ^4.0.7
-  flutter_blue_plus: ^2.3.11
+  flutter_blue_plus: ^2.3.15
   shared_preferences: ^2.5.5
   bluez: ^0.8.3
   flutter_web_bluetooth: ^1.1.0
